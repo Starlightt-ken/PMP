@@ -1,22 +1,30 @@
-#include "myFunction/inventory_system.hpp"
-#include "myFunction/user_general.hpp" 
+#include <Arduino.h>
+#include "inventory_system.hpp" // Tempat fungsi createList()
+#include "menu_utama.hpp"       // Tempat fungsi jalankanMenuUtama()
 
-InventoryList warehouse; 
-
-// ======================= FREE RAM CHECK =======================
+// Bikin satu gudang utama (Global Variable)
+InventoryList warehouse;
 
 void setup() {
-    Serial.begin(115200); 
+    // Mulai komunikasi serial
+    Serial.begin(115200);
+    
+    // Inisialisasi bawaan (opsional, menyesuaikan kodingan awalmu)
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, LOW);
 
+    // Kasih waktu 1 detik buat Arduino siap-siap
     delay(1000);
 
+    // Siapkan memori gudang pakai fungsi temanmu
     createList(&warehouse);
-    
+
+    Serial.println(F("\n=================================="));
+    Serial.println(F(" SISTEM INVENTARIS LAB MENYALA! "));
+    Serial.println(F("=================================="));
 }
 
 void loop() {
-    process(&warehouse); 
-    menuUserGeneral(&warehouse);
+    // Jalankan resepsionis menu utama, serahkan gudang kepadanya
+    jalankanMenuUtama(&warehouse);
 }
