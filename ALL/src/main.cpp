@@ -1,6 +1,6 @@
 #include <Arduino.h>
-#include "inventory_system.hpp" // Tempat fungsi createList()
-#include "menu_utama.hpp"       // Tempat fungsi jalankanMenuUtama()
+#include "myFunction/inventory_system.hpp" 
+#include "myFunction/menu_utama.hpp"     // Tempat fungsi jalankanMenuUtama()
 
 // Bikin satu gudang utama (Global Variable)
 InventoryList warehouse;
