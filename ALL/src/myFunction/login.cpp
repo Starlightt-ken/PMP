@@ -1,16 +1,16 @@
 #include "login.hpp"
-#include "user.hpp"             // WAJIB ADA: Memanggil definisi struct user
+#include "user.hpp"             
 #include "serial_utils.hpp"
 #include "helper.hpp"
-#include "inventory_system.hpp" // Memanggil menu PIC
-#include "admin_menu.hpp"       // Memanggil menu Admin 
-#include "user_general.hpp"     // Memanggil menu Peminjam (Buatanmu)
+#include "inventory_system.hpp" 
+#include "admin_menu.hpp"       
+#include "user_general.hpp"     
 
-// Inisialisasi variabel global dari user.hpp
 User daftarUser[MAX_USERS];
 int  totalUser       = 0;
 int  indexUserAktif  = -1;
 
+// MURNI VOID
 static void toLowerCase(char* dst, const char* src) {
     int i = 0;
     while (src[i]) {
@@ -20,16 +20,22 @@ static void toLowerCase(char* dst, const char* src) {
     dst[i] = '\0';
 }
 
-int usernameAda(const char* username) {
+// MURNI VOID (Menggunakan pointer bool *hasil)
+void cekUsernameAda(const char* username, bool *hasil) {
     char target[MAX_STR], current[MAX_STR];
     toLowerCase(target, username);
+    *hasil = false; // Default: tidak ditemukan
+    
     for (int i = 0; i < totalUser; i++) {
         toLowerCase(current, daftarUser[i].username);
-        if (strcmp(current, target) == 0) return 1;
+        if (strcmp(current, target) == 0) {
+            *hasil = true; // Ketemu!
+            return;
+        }
     }
-    return 0;
 }
 
+// MURNI VOID
 static void tampilkanPilihanRole(void) {
     Serial.println(F("\n  Pilih Role:"));
     Serial.println(F("  1. PIC"));
@@ -38,7 +44,8 @@ static void tampilkanPilihanRole(void) {
     Serial.print(F(" Pilih Role : "));
 }
 
-static Role bacaRole(void) {
+// MURNI VOID (Menggunakan pointer Role *output)
+static void bacaRole(Role *output) {
     ErrorCode err = ERR_OK;
     char buffer[10];
     readSerialString(buffer, &err);
@@ -46,21 +53,61 @@ static Role bacaRole(void) {
     uint8_t pilihan = 0;
     stringToInt(buffer, &pilihan, &err);
     
-    if (pilihan < 1 || pilihan > 3) return (Role)0;
-    return (Role)pilihan;
+    if (pilihan < 1 || pilihan > 3) {
+        *output = (Role)0;
+    } else {
+        *output = (Role)pilihan;
+    }
 }
 
+// MURNI VOID
+void jalankanRegister(void) {
+    Serial.println(F("\n >> DAFTAR ADMIN BARU"));
+
+    if (totalUser >= MAX_USERS) {
+        Serial.println(F("[!] Kapasitas memori akun penuh."));
+        return;
+    }
+
+    char username[MAX_STR], password[MAX_STR];
+    ErrorCode err = ERR_OK;
+    bool isExist = false;
+
+    Serial.print(F("  Username Admin Baru : "));
+    readSerialString(username, &err);
+
+    // Panggil fungsi VOID dengan pointer
+    cekUsernameAda(username, &isExist);
+    if (isExist) {
+        Serial.println(F("Username sudah terdaftar!"));
+        return;
+    }
+
+    Serial.print(F("  Password : "));
+    readSerialString(password, &err);
+
+    strcpy(daftarUser[totalUser].username, username);
+    strcpy(daftarUser[totalUser].password, password);
+    daftarUser[totalUser].role = ROLE_ADMIN;
+    totalUser++;
+
+    Serial.println(F("Akun Admin berhasil didaftarkan! Silakan login."));
+}
+
+// MURNI VOID
 void jalankanLogin(InventoryList *l) {
     Serial.println(F("\n>>> LOGIN SYSTEM"));
 
     tampilkanPilihanRole();
-    Role roleDipilih = bacaRole();
+    
+    Role roleDipilih;
+    bacaRole(&roleDipilih); // Panggil fungsi VOID dengan pointer
+    
     if (roleDipilih == 0) {
         Serial.println(F("Pilihan role tidak valid."));
         return;
     }
 
-    // --- AKSES TAMU UNTUK PEMINJAM (GUEST) ---
     if (roleDipilih == ROLE_PEMINJAM) {
         Serial.println(F("\nBerhasil masuk sebagai Peminjam (Guest). Selamat datang!"));
         menuUserGeneral(l); 
@@ -71,7 +118,6 @@ void jalankanLogin(InventoryList *l) {
     ErrorCode err = ERR_OK;
     char buffer[10];
 
-    // --- GERBANG KHUSUS ADMIN: LOGIN ATAU REGISTER ---
     if (roleDipilih == ROLE_ADMIN) {
         Serial.println(F("\n[MENU AKSES ADMIN]"));
         Serial.println(F("1. Masuk (Login Acc)"));
@@ -80,14 +126,11 @@ void jalankanLogin(InventoryList *l) {
         
         readSerialString(buffer, &err);
         if (buffer[0] == '2') {
-            // MENGHARGAI KODE TEMAN: Panggil fungsi register aslinya di sini
             jalankanRegister();
-            return; // Langsung keluar setelah daftar, biar dia harus login ulang
+            return; 
         }
-        // Kalau user pilih '1', sistem akan cuek dan lanjut ke kode bawah minta password
     }
 
-    // --- PROSES LOGIN NORMAL (UNTUK PIC ATAU ADMIN) ---
     Serial.println(F("\n--- MASUKKAN KREDENSIAL AKUN ---"));
     Serial.print(F("  Username : "));
     readSerialString(username, &err);
@@ -106,55 +149,24 @@ void jalankanLogin(InventoryList *l) {
                 return;
             }
     
-            indexUserAktif = i; // Mengunci identitas siapa yang sedang login
+            indexUserAktif = i; 
             Serial.print(F("\nLogin Berhasil! Selamat datang Admin/PIC: "));
             Serial.println(daftarUser[i].username);
             
-            // Masuk ke ruangan sesuai jabatannya
             if (roleDipilih == ROLE_PIC) {
                 process(l); 
             } else if (roleDipilih == ROLE_ADMIN) {
-                menuAdmin(l); // INI YANG TADI KETIMPA, KITA KEMBALIKAN!
+                menuAdmin(l); 
             }
             
-            indexUserAktif = -1; // Auto-logout saat keluar ruangan menu
+            indexUserAktif = -1; 
             return;
         }
     }
     Serial.println(F("Username tidak ditemukan di database sistem."));
 }
 
-void jalankanRegister(void) {
-    Serial.println(F("\n >> DAFTAR ADMIN BARU"));
-
-    if (totalUser >= MAX_USERS) {
-        Serial.println(F("[!] Kapasitas memori akun penuh."));
-        return;
-    }
-
-    char username[MAX_STR], password[MAX_STR];
-    ErrorCode err = ERR_OK;
-
-    Serial.print(F("  Username Admin Baru : "));
-    readSerialString(username, &err);
-
-    if (usernameAda(username)) {
-        Serial.println(F("Username sudah terdaftar!"));
-        return;
-    }
-
-    Serial.print(F("  Password : "));
-    readSerialString(password, &err);
-
-    // Simpan data dan otomatis jadikan sebagai Admin
-    strcpy(daftarUser[totalUser].username, username);
-    strcpy(daftarUser[totalUser].password, password);
-    daftarUser[totalUser].role = ROLE_ADMIN;
-    totalUser++;
-
-    Serial.println(F("Akun Admin berhasil didaftarkan! Silakan login."));
-}
-
+// MURNI VOID
 void jalankanLogout(void) {
     Serial.println(F("\n>>> LOGOUT"));
     if (indexUserAktif == -1) {

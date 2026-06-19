@@ -6,16 +6,16 @@
 // ============================================================
 //  DIET MEMORI: Kapasitas Disesuaikan
 // ============================================================
-#define MAX_USERS 5   // Cukup 5 slot (3 akun bawaan + 2 slot kosong buat admin baru)
-#define MAX_STR   12  // Cukup 12 karakter (11 huruf + 1 null terminator)
+#define MAX_USERS 5   
+#define MAX_STR   12  
 
 // ============================================================
 //  DEFINISI ROLE
 // ============================================================
 typedef enum {
-    ROLE_PIC      = 1,   // Person In Charge  (imam)
-    ROLE_ADMIN    = 2,   // Admin
-    ROLE_PEMINJAM = 3    // Peminjam / Konsumen (Kenny)
+    ROLE_PIC      = 1,   
+    ROLE_ADMIN    = 2,   
+    ROLE_PEMINJAM = 3    
 } Role;
 
 // ============================================================
@@ -32,17 +32,17 @@ typedef struct {
 // ============================================================
 extern User  daftarUser[MAX_USERS];
 extern int   totalUser;
-extern int   indexUserAktif;   // -1 = belum login
+extern int   indexUserAktif;   
 
 // ============================================================
-//  HELPER: konversi role ke string
+//  HELPER: (Diubah menjadi VOID)
 // ============================================================
-static inline const char* roleToString(Role r) {
+static inline void printRole(Role r) {
     switch (r) {
-        case ROLE_PIC:      return "PIC";
-        case ROLE_ADMIN:    return "Admin";
-        case ROLE_PEMINJAM: return "Peminjam";
-        default:            return "Tidak Dikenal";
+        case ROLE_PIC:      Serial.print(F("PIC")); break;
+        case ROLE_ADMIN:    Serial.print(F("Admin")); break;
+        case ROLE_PEMINJAM: Serial.print(F("Peminjam")); break;
+        default:            Serial.print(F("Tidak Dikenal")); break;
     }
 }
 
