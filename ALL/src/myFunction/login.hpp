@@ -6,7 +6,6 @@
 
 void jalankanLogin(InventoryList *l);
 void jalankanRegister(void);
-void jalankanLupaPassword(void);
 void jalankanLogout(void);
 
 #endif

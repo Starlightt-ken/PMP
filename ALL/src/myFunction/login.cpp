@@ -50,21 +50,6 @@ static Role bacaRole(void) {
     return (Role)pilihan;
 }
 
-static void runLengthEncode(char* dst, const char* src) {
-    int len = (int)strlen(src);
-    int count = 1, j = 0;
-    for (int i = 1; i <= len; i++) {
-        if (i < len && src[i] == src[i - 1]) {
-            count++;
-        } else {
-            if (count > 1) dst[j++] = (char)(count + '0');
-            dst[j++] = src[i - 1];
-            count = 1;
-        }
-    }
-    dst[j] = '\0';
-}
-
 void jalankanLogin(InventoryList *l) {
     Serial.println(F("\n>>> LOGIN SYSTEM"));
 
@@ -168,50 +153,6 @@ void jalankanRegister(void) {
     totalUser++;
 
     Serial.println(F("Akun Admin berhasil didaftarkan! Silakan login."));
-}
-
-void jalankanLupaPassword(void) {
-    Serial.println(F("\n>>LUPA PASSWORD"));
-
-    char username[MAX_STR];
-    ErrorCode err = ERR_OK;
-    
-    Serial.print(F("  Username : "));
-    readSerialString(username, &err);
-
-    int idx = -1;
-    for (int i = 0; i < totalUser; i++) {
-        if (strcasecmp(daftarUser[i].username, username) == 0) {
-            idx = i;
-            break;
-        }
-    }
-
-    if (idx == -1) {
-        Serial.println(F("[!] Username tidak ditemukan."));
-        return;
-    }
-
-    char encoded[MAX_STR * 2];
-    runLengthEncode(encoded, daftarUser[idx].username);
-
-    Serial.println(F("  [INFO] Kode unik = enkripsi username (Contoh: aabbc -> 2a2bc)"));
-    Serial.print(F("  Masukkan kode unik : "));
-
-    char kodeInput[MAX_STR * 2];
-    readSerialString(kodeInput, &err);
-
-    if (strcmp(kodeInput, encoded) != 0) {
-        Serial.println(F("Kode unik salah!"));
-        return;
-    }
-
-    char passwordBaru[MAX_STR];
-    Serial.print(F("  Password Baru : "));
-    readSerialString(passwordBaru, &err);
-
-    strcpy(daftarUser[idx].password, passwordBaru);
-    Serial.println(F("Password berhasil diubah."));
 }
 
 void jalankanLogout(void) {

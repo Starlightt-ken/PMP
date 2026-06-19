@@ -3,8 +3,11 @@
 
 #include <Arduino.h>
 
-#define MAX_USERS 10
-#define MAX_STR   16
+// ============================================================
+//  DIET MEMORI: Kapasitas Disesuaikan
+// ============================================================
+#define MAX_USERS 5   // Cukup 5 slot (3 akun bawaan + 2 slot kosong buat admin baru)
+#define MAX_STR   12  // Cukup 12 karakter (11 huruf + 1 null terminator)
 
 // ============================================================
 //  DEFINISI ROLE

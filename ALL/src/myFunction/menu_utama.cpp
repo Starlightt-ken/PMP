@@ -5,9 +5,8 @@
 void tampilkanMenuUtama(void) {
     Serial.println(F("\n        Menu Utama                    "));
     Serial.println(F("1. Login                              "));
-    Serial.println(F("2. Lupa Password                      "));
-    Serial.println(F("3. Keluar                             "));
-    Serial.print(F("Pilih menu (1-3): "));
+    Serial.println(F("2. Keluar                             "));
+    Serial.print(F("Pilih menu (1-2): "));
 }
 
 void jalankanMenuUtama(InventoryList *l) {
@@ -23,9 +22,10 @@ void jalankanMenuUtama(InventoryList *l) {
         char pilihan = buffer[0];
 
         switch (pilihan) {
-            case '1': jalankanLogin(l); break;
-            case '2': jalankanLupaPassword(); break; // Register dihapus, nomor 2 bergeser jadi lupa password
-            case '3': 
+            case '1': 
+                jalankanLogin(l); 
+                break;
+            case '2': 
                 Serial.println(F("\nProgram dihentikan.")); 
                 return; 
             default: 
