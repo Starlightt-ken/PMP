@@ -19,7 +19,8 @@ extern bool shouldDisplayMenu;
 void process(InventoryList *l);
 
 // buat cek cek aja
-void loadInitialData(InventoryList *l);
+// Tambahkan baris ini kalau belum ada!
+void inisialisasiSistem(InventoryList *l);
 
 // membuat list baru
 void createList(InventoryList *l);

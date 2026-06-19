@@ -312,7 +312,6 @@ void processByName(InventoryList *l, const char *targetName, MenuCommand command
 }
 
 void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
-
     Serial.println(F("\n--- Detail Data Saat Ini ---"));
     Serial.print(F("ID         : ")); Serial.println(curr->data.itemId);
     Serial.print(F("1. Nama    : ")); Serial.println(curr->data.itemName);
@@ -346,59 +345,51 @@ void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
             curr->data.itemName[MAX_LENGTH] = '\0';
             break;
         }
-
         case '2': { // Ubah Kategori
             stringToInt(buffer, &numericValue, err);
             if (*err != ERR_OK) return;
-            if (numericValue < 1 || numericValue > 4) { 
-                Serial.println(F("Proses Gagal, Kategori tidak valid!"));
+            // PERBAIKAN: Batas kategori 0-2 (Sensor, Aktuator, Mikrokontroler)
+            if (numericValue > 2) { 
+                Serial.println(F("Proses Gagal, Kategori tidak valid! (Pilih 0, 1, atau 2)"));
                 return;
             }
             curr->data.category = numericValue;
             break;
         }
-
         case '3': { // Ubah Lokasi
             stringToInt(buffer, &numericValue, err);
             if (*err != ERR_OK) return;
-            if (numericValue < 1 || numericValue > 3) {
-                Serial.println(F("Proses Gagal, Lokasi tidak valid!"));
+            // PERBAIKAN: Batas lokasi 0-1 (Lemari, Meja)
+            if (numericValue > 1) {
+                Serial.println(F("Proses Gagal, Lokasi tidak valid! (Pilih 0 atau 1)"));
                 return;
             }
             curr->data.location = numericValue;
             break;
         }
-
         case '4': { // Ubah Pemilik
             strncpy(curr->data.owner, buffer, MAX_LENGTH);
             curr->data.owner[MAX_LENGTH] = '\0';
             break;
         }
-
         case '5': { // Ubah PIC
             strncpy(curr->data.pic, buffer, MAX_LENGTH);
             curr->data.pic[MAX_LENGTH] = '\0';
             break;
         }
     }
-
     Serial.println(F("\nDATA BARANG BERHASIL DIPERBARUI!"));
 }
 
 void modifyStockInventoryNode(InventoryNode *curr, ErrorCode *err) {
-
     uint8_t availableNow = 0;
     getAvailableStock(&curr->data.stock, &availableNow);
 
     Serial.println(F("\n--- Detail Stok Saat Ini ---"));
-    Serial.print(F("1. Total Stock : "));
-    Serial.println(curr->data.stock.totalStock);
-    Serial.print(F("2. Dipinjam    : "));
-    Serial.println(curr->data.stock.borrowed);
-    Serial.print(F("3. Rusak       : "));
-    Serial.println(curr->data.stock.broken);
-    Serial.print(F("(Tersedia)     : "));
-    Serial.println(availableNow);
+    Serial.print(F("1. Total Stock : ")); Serial.println(curr->data.stock.totalStock);
+    Serial.print(F("2. Dipinjam    : ")); Serial.println(curr->data.stock.borrowed);
+    Serial.print(F("3. Rusak       : ")); Serial.println(curr->data.stock.broken);
+    Serial.print(F("(Tersedia)     : ")); Serial.println(availableNow);
     Serial.print(F("Pilih tipe stok yang ingin diubah (1-3): "));
 
     char buffer[MAX_LENGTH + 1];
@@ -424,23 +415,30 @@ void modifyStockInventoryNode(InventoryNode *curr, ErrorCode *err) {
     stringToInt(buffer, &newValue, err);
     if (*err != ERR_OK) return;
 
-    // Salin stok ke struct sementara untuk validasi kelayakan logis
     StockInfo tempStock = curr->data.stock;
 
     switch (stockChoice) {
-        case '1': tempStock.totalStock = newValue; break;
+        case '1': {
+            // PERBAIKAN: Batas maksimal stok per barang = 50
+            if (newValue > 50) {
+                Serial.println(F("\nProses Gagal: Total stok melebihi batas maksimal lab (50 unit)!"));
+                *err = ERR_OK;
+                return;
+            }
+            tempStock.totalStock = newValue; 
+            break;
+        }
         case '2': tempStock.borrowed  = newValue; break;
         case '3': tempStock.broken    = newValue; break;
     }
 
-    // validasi barang melebihi stock
+    // Validasi kelogisan stok buatan temanmu tetap kita pakai
     if ((tempStock.borrowed + tempStock.broken) > tempStock.totalStock) {
         Serial.println(F("\nProses Gagal, Jumlah (Dipinjam dan Rusak) tidak boleh melebihi Total Stock"));
         *err = ERR_OK; 
         return;
     }
 
-    // jika validasi benar, update data asli di heap
     curr->data.stock = tempStock;
     Serial.println(F("\nSTOK BERHASIL DIPERBARUI"));
 }

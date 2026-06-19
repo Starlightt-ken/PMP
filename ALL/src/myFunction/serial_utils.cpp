@@ -12,17 +12,24 @@ void clearSerial() {
     }
 }
 
-void readSerialString(char *buffer, ErrorCode *err)
-{
+void readSerialString(char *buffer, ErrorCode *err) {
+    // 1. Cek apakah memori buffer aman
     if (buffer == NULL) {
         *err = ERR_DATA_NULL;
         return;
     }
 
-    Serial.setTimeout(MAX_SERIAL_INPUT_TIMEOUT);
+    // 2. KUNCI UTAMA: Tahan program di sini sampai user benar-benar ngetik!
+    // Ini yang mencegah menu nge-refresh/ke-reset sendiri tiap 10 detik.
+    while (!Serial.available()) {
+        delay(10);
+    }
 
+    // 3. Mulai membaca ketikan user
+    Serial.setTimeout(MAX_SERIAL_INPUT_TIMEOUT);
     size_t n = Serial.readBytesUntil('\n', buffer, MAX_LENGTH - 1);
 
+    // 4. Kalau ternyata kosong (cuma kepencet enter doang)
     if (n == 0) {
         buffer[0] = '\0';
         *err = ERR_SERIAL_INPUT_TIMEOUT;
@@ -31,11 +38,10 @@ void readSerialString(char *buffer, ErrorCode *err)
 
     buffer[n] = '\0';
 
-    // hapus CR/LF
+    // 5. Bersihkan sisa karakter "Enter" (Carriage Return / Line Feed) dari sistem
     buffer[strcspn(buffer, "\r\n")] = '\0';
 
     clearSerial();
-
     *err = ERR_OK;
 }
 

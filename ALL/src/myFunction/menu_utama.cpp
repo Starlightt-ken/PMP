@@ -3,12 +3,11 @@
 #include "serial_utils.hpp"
 
 void tampilkanMenuUtama(void) {
-    Serial.println(F("\n         Menu Utama                    "));
+    Serial.println(F("\n        Menu Utama                    "));
     Serial.println(F("1. Login                              "));
-    Serial.println(F("2. Register (Daftar Akun Baru)        "));
-    Serial.println(F("3. Lupa Password                      "));
-    Serial.println(F("4. Keluar                             "));
-    Serial.print(F("Pilih menu : "));
+    Serial.println(F("2. Lupa Password                      "));
+    Serial.println(F("3. Keluar                             "));
+    Serial.print(F("Pilih menu (1-3): "));
 }
 
 void jalankanMenuUtama(InventoryList *l) {
@@ -25,9 +24,8 @@ void jalankanMenuUtama(InventoryList *l) {
 
         switch (pilihan) {
             case '1': jalankanLogin(l); break;
-            case '2': jalankanRegister(); break;
-            case '3': jalankanLupaPassword(); break;
-            case '4': 
+            case '2': jalankanLupaPassword(); break; // Register dihapus, nomor 2 bergeser jadi lupa password
+            case '3': 
                 Serial.println(F("\nProgram dihentikan.")); 
                 return; 
             default: 

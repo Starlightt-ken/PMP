@@ -9,63 +9,91 @@
 // =========================================================
 
 void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
-    char buffer[MAX_LENGTH + 1];
-    uint8_t itemId, totalStock, categoryId;
     *err = ERR_OK;
-
-    Serial.println(F("\n--- TAMBAH BARANG BARU ---"));
+    Serial.println(F("\n=== SESI TAMBAH BARANG BARU ==="));
+    Serial.println(F("[INFO] Ketik ID '0' untuk selesai dan kembali ke menu."));
     
-    // 1. Minta ID
-    Serial.print(F("Masukkan ID Barang (angka): "));
-    readSerialString(buffer, err);
-    stringToInt(buffer, &itemId, err);
+    // Pakai Looping agar Admin bisa nambah banyak barang sekaligus tanpa bolak-balik
+    while (true) {
+        char buffer[MAX_LENGTH + 1];
+        uint8_t itemId, totalStock, categoryId;
 
-    // 2. Minta Nama
-    Serial.print(F("Masukkan Nama Barang: "));
-    char itemName[MAX_LENGTH + 1];
-    readSerialString(itemName, err);
+        // 1. Minta ID
+        Serial.print(F("\nMasukkan ID Barang Baru: "));
+        readSerialString(buffer, err);
+        if (*err != ERR_OK) return;
+        stringToInt(buffer, &itemId, err);
 
-    // 3. Minta Kategori
-    Serial.print(F("Masukkan Kategori (1-5): "));
-    readSerialString(buffer, err);
-    stringToInt(buffer, &categoryId, err);
+        // Fitur Keluar
+        if (itemId == 0) {
+            Serial.println(F("Sesi tambah barang diakhiri."));
+            break; 
+        }
 
-    // 4. Minta Stok
-    Serial.print(F("Masukkan Jumlah Stok: "));
-    readSerialString(buffer, err);
-    stringToInt(buffer, &totalStock, err);
+        // --- CEK KEAMANAN ID GANDA ---
+        bool isExist = false;
+        // Kita pinjam fungsi isItemIdExist buatan temanmu dari helper.hpp
+        isItemIdExist(l, itemId, &isExist, err);
+        if (isExist) {
+            Serial.println(F("GAGAL: ID tersebut sudah terdaftar di gudang!"));
+            Serial.println(F("Gunakan menu PIC jika hanya ingin menambah angka stoknya."));
+            continue; // Langsung lompat ke perulangan awal minta ID lagi
+        }
 
-    // Memesan memori untuk kantong (Node) baru
-    InventoryNode *newNode = (InventoryNode *)malloc(sizeof(InventoryNode));
-    if (newNode == NULL) {
-        Serial.println(F("\nGAGAL: Memori Arduino penuh!"));
-        return;
-    }
+        // 2. Minta Nama
+        Serial.print(F("Masukkan Nama Barang: "));
+        char itemName[MAX_LENGTH + 1];
+        readSerialString(itemName, err);
 
-    // Mengisi data ke dalam kantong
-    newNode->data.itemId = itemId;
-    strncpy(newNode->data.itemName, itemName, MAX_LENGTH);
-    newNode->data.category = categoryId;
-    newNode->data.stock.totalStock = totalStock;
-    newNode->data.stock.borrowed = 0; // Barang baru pasti belum ada yang pinjam
-    newNode->next = NULL;
+        // 3. Minta Kategori
+        // Berdasarkan types.hpp: 0=Sensor, 1=Aktuator, 2=Mikrokontroller
+        Serial.print(F("Masukkan Kategori (0-2): ")); 
+        readSerialString(buffer, err);
+        stringToInt(buffer, &categoryId, err);
 
-    // Memasukkan kantong ke lemari utama pakai fungsi buatan temanmu
-    insertNodeToList(l, newNode, err);
-    
-    if (*err == ERR_OK) {
-        Serial.print(F("\nBERHASIL! Barang '"));
-        Serial.print(itemName);
-        Serial.println(F("' resmi ditambahkan ke gudang."));
-    } else {
-        Serial.println(F("\nGAGAL: Gudang sudah penuh (Maksimal Kapasitas)."));
-        free(newNode); // Buang memori kalau gagal masuk
+        // 4. Minta Stok
+        Serial.print(F("Masukkan Jumlah Stok: "));
+        readSerialString(buffer, err);
+        stringToInt(buffer, &totalStock, err);
+
+        // Memesan memori untuk kantong (Node) baru
+        InventoryNode *newNode = (InventoryNode *)malloc(sizeof(InventoryNode));
+        if (newNode == NULL) {
+            Serial.println(F("\nGAGAL: Memori Arduino penuh!"));
+            break;
+        }
+
+        // Mengisi data ke dalam kantong
+        newNode->data.itemId = itemId;
+        strncpy(newNode->data.itemName, itemName, MAX_LENGTH);
+        newNode->data.category = categoryId;
+        
+        newNode->data.stock.totalStock = totalStock;
+        newNode->data.stock.borrowed = 0; 
+        newNode->data.stock.broken = 0; // Inisialisasi wajib agar datanya tidak ngacak
+        
+        // Kasih nama default untuk mencegah error memori
+        strcpy(newNode->data.owner, "Admin"); 
+        strcpy(newNode->data.pic, "-");       
+        
+        newNode->next = NULL;
+
+        // Memasukkan kantong ke lemari utama pakai fungsi buatan temanmu
+        insertNodeToList(l, newNode, err);
+        
+        if (*err == ERR_OK) {
+            Serial.print(F("BERHASIL! Barang '"));
+            Serial.print(itemName);
+            Serial.println(F("' resmi ditambahkan ke gudang."));
+        } else {
+            Serial.println(F("GAGAL: Gudang sudah penuh (Maksimal Kapasitas)."));
+            free(newNode); // Buang memori kalau gagal masuk
+            break;
+        }
     }
 }
 
 void tarikBarangAdmin(InventoryList *l, ErrorCode *err) {
-    char buffer[MAX_LENGTH + 1];
-    uint8_t targetId;
     *err = ERR_OK;
 
     if (l == NULL || l->head == NULL) {
@@ -73,36 +101,68 @@ void tarikBarangAdmin(InventoryList *l, ErrorCode *err) {
         return;
     }
 
-    Serial.println(F("\n--- TARIK BARANG PERMANEN ---"));
-    Serial.print(F("Masukkan ID Barang yang ingin ditarik: "));
-    
-    readSerialString(buffer, err);
-    stringToInt(buffer, &targetId, err);
+    Serial.println(F("\n=== SESI TARIK BARANG PERMANEN ==="));
+    Serial.println(F("[INFO] Ketik ID '0' untuk selesai dan kembali ke menu."));
 
-    InventoryNode *curr = l->head;
-    InventoryNode *prev = NULL;
+    // Looping agar Admin bisa menghapus beberapa barang sekaligus
+    while (true) {
+        char buffer[MAX_LENGTH + 1];
+        uint8_t targetId = 0;
 
-    // Looping mencari barang
-    while (curr != NULL) {
-        if (curr->data.itemId == targetId) {
-            
-            // CEK KEAMANAN: Jangan izinkan tarik barang kalau masih dipinjam mahasiswa!
-            if (curr->data.stock.borrowed > 0) {
-                Serial.println(F("\nGAGAL: Barang tidak bisa ditarik karena masih ada unit yang dipinjam!"));
-                return;
-            }
+        Serial.print(F("\nMasukkan ID Barang yang ingin ditarik: "));
+        readSerialString(buffer, err);
+        if (*err != ERR_OK) return;
+        
+        stringToInt(buffer, &targetId, err);
+        if (*err != ERR_OK) return;
 
-            // Hapus pakai fungsi temanmu
-            deleteInventoryNode(l, curr, prev);
-            Serial.println(F("\nBERHASIL! Barang ditarik dan dihapus dari sistem secara permanen."));
-            return;
+        // Fitur Keluar Cepat
+        if (targetId == 0) {
+            Serial.println(F("Sesi penarikan barang diakhiri."));
+            break; 
         }
-        prev = curr;
-        curr = curr->next;
-    }
-    Serial.println(F("\nGAGAL: ID Barang tidak ditemukan di gudang."));
-}
 
+        InventoryNode *curr = l->head;
+        InventoryNode *prev = NULL;
+        bool barangDitemukan = false;
+
+        // Looping mencari barang di dalam database
+        while (curr != NULL) {
+            if (curr->data.itemId == targetId) {
+                barangDitemukan = true;
+
+                // CEK KEAMANAN: Jangan izinkan tarik kalau masih dipinjam!
+                if (curr->data.stock.borrowed > 0) {
+                    Serial.print(F("GAGAL: Barang '"));
+                    Serial.print(curr->data.itemName);
+                    Serial.println(F("' masih ada yang dipinjam. Tidak bisa ditarik!"));
+                } else {
+                    // Kasih info barang apa yang barusan dihapus biar Admin yakin
+                    Serial.print(F("BERHASIL! Barang '"));
+                    Serial.print(curr->data.itemName);
+                    Serial.println(F("' ditarik dan dihapus permanen."));
+                    
+                    // Hapus pakai fungsi temanmu
+                    deleteInventoryNode(l, curr, prev);
+                }
+                break; // Keluar dari loop pencarian barang, lanjut minta ID berikutnya
+            }
+            prev = curr;
+            curr = curr->next;
+        }
+
+        // Kalau Admin masukin ID ngasal
+        if (!barangDitemukan) {
+            Serial.println(F("GAGAL: ID Barang tersebut tidak ditemukan di gudang."));
+        }
+        
+        // Pengecekan Ekstra: Kalau ternyata gudang jadi kosong melompong setelah penghapusan
+        if (l->head == NULL) {
+            Serial.println(F("\n[INFO] Gudang sekarang sudah kosong sepenuhnya. Sesi otomatis diakhiri."));
+            break;
+        }
+    }
+}
 
 // =========================================================
 // MENU UTAMA ADMIN
