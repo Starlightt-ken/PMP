@@ -3,14 +3,14 @@
 #include "serial_utils.h"
 #include "helper.h"
 #include "tampil_barang.h" 
-#include "serial_bridge.h" // Wajib dipanggil untuk output
-#include "user.h"          // Wajib dipanggil agar tipe data User dikenali
-#include <stdio.h>         // Untuk sprintf (formatting string)
+#include "serial_bridge.h" 
+#include "user.h"          
+#include <stdio.h>        
 
 // Mengambil variabel global dari file login agar sistem tahu siapa yang sedang aktif
 extern User daftarUser[];
 extern int indexUserAktif;
-extern int totalUser; // Ditambahkan agar kita bisa mencari PIC di seluruh daftar user
+extern int totalUser; 
 
 // =========================================================
 // FUNGSI INTERNAL ADMIN
@@ -85,7 +85,7 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
             strcpy(newNode->data.owner, "Admin_Unknown"); 
         }
         
-        // --- 5. FITUR BARU: PILIH PIC ---
+        // --- PILIH PIC ---
         serial_cetak_teks_ln_flash(PSTR("\n--- Daftar PIC Tersedia ---"));
         int picIndices[MAX_USERS]; // Menyimpan indeks asli dari daftarUser
         int picCount = 0;
