@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "myFunction/serial_bridge.h" // Wajib panggil jembatan
+#include "myFunction/serial_bridge.h" 
 #include "myFunction/inventory_system.h" 
 #include "myFunction/menu_utama.h"
 
@@ -7,19 +7,18 @@
 InventoryList warehouse;
 
 void setup() {
-    // Menyalakan komunikasi ke laptop lewat jembatan
+    // Menyalakan komunikasi ke laptop 
     serial_mulai(); 
     
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, LOW);
     
-    delay(1000); // Tunggu Arduino stabil
+    delay(1000); 
 
     // Eksekusi data awal
     inisialisasiSistem(&warehouse);
 }
 
 void loop() {
-    // Serahkan kontrol ke lobi utama
     jalankanMenuUtama(&warehouse);
 }
