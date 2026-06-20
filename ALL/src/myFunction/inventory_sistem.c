@@ -41,7 +41,7 @@ void inisialisasiSistem(InventoryList *l) {
                             KATEGORI_SENSOR, KATEGORI_SENSOR, KATEGORI_SENSOR,
                             KATEGORI_MIKROKONTROLLER, KATEGORI_MIKROKONTROLLER, KATEGORI_MIKROKONTROLLER};
 
-    for (uint8_t i = 0; i < 9; i++) {
+    for (uint8_t i = 0; i < 50; i++) {
         InventoryNode *newNode = (InventoryNode *)malloc(sizeof(InventoryNode));
         if (newNode == NULL) continue;
         
@@ -53,8 +53,10 @@ void inisialisasiSistem(InventoryList *l) {
         newNode->data.stock.totalStock = 3; 
         newNode->data.stock.borrowed = 0;
         newNode->data.stock.broken = 0;
-
-        switch(i) {
+        
+        // --- REVISI DIET MEMORI ---
+        // Kita buang strcpy_P untuk PIC, dan ganti dengan memasukkan angkanya saja
+        switch(i%9) {
             case 0:
                 strcpy_P(newNode->data.itemName, PSTR("Motor Servo"));
                 newNode->data.picIndex = 1; // 1 = Naya
@@ -118,12 +120,11 @@ void process(InventoryList *l) {
     while (isPICLoggedIn) {
         if (shouldDisplayMenu) {
             serial_cetak_teks_ln_flash(PSTR("\n====== MENU INVENTARIS (PIC) ======"));
-            serial_cetak_teks_ln_flash(PSTR("3. Mencari Data"));
-            serial_cetak_teks_ln_flash(PSTR("4. Memperbarui Stock"));
-            serial_cetak_teks_ln_flash(PSTR("5. Memperbarui Data"));
-            serial_cetak_teks_ln_flash(PSTR("6. Menampilkan Semua Data"));
-            serial_cetak_teks_ln_flash(PSTR("7. Menghapus Semua Data"));
-            serial_cetak_teks_ln_flash(PSTR("8. Menampilkan Sisa SRAM"));
+            serial_cetak_teks_ln_flash(PSTR("1. Mencari Data"));
+            serial_cetak_teks_ln_flash(PSTR("2. Memperbarui Stock"));
+            serial_cetak_teks_ln_flash(PSTR("3. Memperbarui Data"));
+            serial_cetak_teks_ln_flash(PSTR("4. Menampilkan Semua Data"));
+            serial_cetak_teks_ln_flash(PSTR("5. Menampilkan Manajemen Memori"));
             serial_cetak_teks_ln_flash(PSTR("0. Logout"));
             serial_cetak_teks_ln_flash(PSTR("==================================="));
             serial_cetak_teks_flash(PSTR("Pilih menu: "));
@@ -137,32 +138,32 @@ void process(InventoryList *l) {
         ERROR_FLAG = ERR_OK;
 
         switch (choice) {
-            case '3': {
+            case '1': {
                 runInventoryMenu(l, CMD_SEARCH, &ERROR_FLAG);
                 if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
                 shouldDisplayMenu = true; serial_bersihkan(); break;
             }
-            case '4': {
+            case '2': {
                 runInventoryMenu(l, CMD_UPDATE_STOCK, &ERROR_FLAG);
                 if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
                 shouldDisplayMenu = true; serial_bersihkan(); break;
             }
-            case '5': {
+            case '3': {
                 runInventoryMenu(l, CMD_UPDATE_ITEM, &ERROR_FLAG);
                 if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
                 shouldDisplayMenu = true; serial_bersihkan(); break;
             }
-            case '6': {
+            case '4': {
                 displayList(l, &ERROR_FLAG);
                 if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
                 shouldDisplayMenu = true; serial_bersihkan(); break;
             }
-            case '7': {
-                destroyList(l, &ERROR_FLAG);
-                if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
-                shouldDisplayMenu = true; serial_bersihkan(); break;
-            }
-            case '8': {
+            // case '5': {
+            //     destroyList(l, &ERROR_FLAG);
+            //     if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
+            //     shouldDisplayMenu = true; serial_bersihkan(); break;
+            // }
+            case '5': {
                 printMemory(l);
                 shouldDisplayMenu = true; serial_bersihkan(); break;
             }
@@ -171,10 +172,8 @@ void process(InventoryList *l) {
                 isPICLoggedIn = false; serial_bersihkan(); break;
             }
             default: {
-                if (choice != '\n' && choice != '\r' && choice != '\0') {
-                    serial_cetak_teks_ln_flash(PSTR("\nPilihan salah atau Anda tidak memiliki hak akses!"));
-                    shouldDisplayMenu = true;
-                }
+                serial_cetak_teks_ln_flash(PSTR("\nPilihan salah atau Anda tidak memiliki hak akses!"));
+                shouldDisplayMenu = true;
                 break;
             }
         }
