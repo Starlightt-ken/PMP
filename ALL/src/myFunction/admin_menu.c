@@ -5,10 +5,12 @@
 #include "tampil_barang.h" 
 #include "serial_bridge.h" // Wajib dipanggil untuk output
 #include "user.h"          // Wajib dipanggil agar tipe data User dikenali
+#include <stdio.h>         // Untuk sprintf (formatting string)
 
 // Mengambil variabel global dari file login agar sistem tahu siapa yang sedang aktif
 extern User daftarUser[];
 extern int indexUserAktif;
+extern int totalUser; // Ditambahkan agar kita bisa mencari PIC di seluruh daftar user
 
 // =========================================================
 // FUNGSI INTERNAL ADMIN
@@ -75,26 +77,67 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
         newNode->data.stock.borrowed = 0; 
         newNode->data.stock.broken = 0; 
         
-        // --- MODIFIKASI: Menggunakan nama Admin yang sedang login ---
+        // --- Menggunakan nama Admin yang sedang login ---
         if (indexUserAktif != -1) {
             strncpy(newNode->data.owner, daftarUser[indexUserAktif].username, MAX_LENGTH);
-            newNode->data.owner[MAX_LENGTH] = '\0'; // Keamanan string
+            newNode->data.owner[MAX_LENGTH] = '\0'; 
         } else {
             strcpy(newNode->data.owner, "Admin_Unknown"); 
         }
         
-        strcpy(newNode->data.pic, "-");       
-        
+        // --- 5. FITUR BARU: PILIH PIC ---
+        serial_cetak_teks_ln_flash(PSTR("\n--- Daftar PIC Tersedia ---"));
+        int picIndices[MAX_USERS]; // Menyimpan indeks asli dari daftarUser
+        int picCount = 0;
+
+        // Mencari semua user yang memiliki role PIC
+        for (int i = 0; i < totalUser; i++) {
+            if (daftarUser[i].role == ROLE_PIC) { 
+                picIndices[picCount] = i; // Simpan indeks aslinya
+                picCount++;
+                
+                // Menampilkan format "1. NamaPIC"
+                char numStr[10];
+                sprintf(numStr, "%d. ", picCount);
+                serial_cetak_teks(numStr);
+                serial_cetak_teks_ln(daftarUser[i].username);
+            }
+        }
+
+        if (picCount == 0) {
+            // Jika belum ada PIC yang terdaftar sama sekali
+            serial_cetak_teks_ln_flash(PSTR("[INFO] Belum ada akun PIC yang terdaftar. PIC di-set otomatis '-'."));
+            strcpy(newNode->data.pic, "-");
+        } else {
+            // Jika ada PIC, minta Admin memilih angkanya
+            serial_cetak_teks_flash(PSTR("Pilih nomor PIC untuk barang ini: "));
+            readSerialString(buffer, err);
+            
+            uint8_t picChoice = 0;
+            stringToInt(buffer, &picChoice, err);
+            
+            // Validasi apakah pilihan Admin benar
+            if (picChoice >= 1 && picChoice <= picCount) {
+                int realIndex = picIndices[picChoice - 1]; // Mengambil indeks asli dari array
+                strncpy(newNode->data.pic, daftarUser[realIndex].username, MAX_LENGTH);
+                newNode->data.pic[MAX_LENGTH] = '\0';
+            } else {
+                serial_cetak_teks_ln_flash(PSTR("[!] Pilihan salah! PIC otomatis di-set ke '-'."));
+                strcpy(newNode->data.pic, "-");
+            }
+        }
+        // ------------------------------------
+
         newNode->next = NULL;
 
         insertNodeToList(l, newNode, err);
         
         if (*err == ERR_OK) {
-            serial_cetak_teks_flash(PSTR("BERHASIL! Barang '"));
+            serial_cetak_teks_flash(PSTR("\nBERHASIL! Barang '"));
             serial_cetak_teks(itemName);
             serial_cetak_teks_ln_flash(PSTR("' resmi ditambahkan ke gudang."));
         } else {
-            serial_cetak_teks_ln_flash(PSTR("GAGAL: Gudang sudah penuh (Maksimal Kapasitas)."));
+            serial_cetak_teks_ln_flash(PSTR("\nGAGAL: Gudang sudah penuh (Maksimal Kapasitas)."));
             free(newNode); 
             break;
         }
