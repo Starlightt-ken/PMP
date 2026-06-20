@@ -77,13 +77,9 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
         newNode->data.stock.borrowed = 0; 
         newNode->data.stock.broken = 0; 
         
-        // --- Menggunakan nama Admin yang sedang login ---
-        if (indexUserAktif != -1) {
-            strncpy(newNode->data.owner, daftarUser[indexUserAktif].username, MAX_LENGTH);
-            newNode->data.owner[MAX_LENGTH] = '\0'; 
-        } else {
-            strcpy(newNode->data.owner, "Admin_Unknown"); 
-        }
+        // --- REVISI DIET MEMORI: Menggunakan nama Admin yang sedang login ---
+        // Kita cukup memberikan angka index akun Admin yang sedang aktif!
+        newNode->data.ownerIndex = indexUserAktif;
         
         // --- PILIH PIC ---
         serial_cetak_teks_ln_flash(PSTR("\n--- Daftar PIC Tersedia ---"));
@@ -106,8 +102,8 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
 
         if (picCount == 0) {
             // Jika belum ada PIC yang terdaftar sama sekali
-            serial_cetak_teks_ln_flash(PSTR("[INFO] Belum ada akun PIC yang terdaftar. PIC di-set otomatis '-'."));
-            strcpy(newNode->data.pic, "-");
+            serial_cetak_teks_ln_flash(PSTR("[INFO] Belum ada akun PIC. PIC di-set otomatis ke Tidak Diketahui."));
+            newNode->data.picIndex = -1; // -1 artinya Tidak Diketahui
         } else {
             // Jika ada PIC, minta Admin memilih angkanya
             serial_cetak_teks_flash(PSTR("Pilih nomor PIC untuk barang ini: "));
@@ -119,11 +115,12 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
             // Validasi apakah pilihan Admin benar
             if (picChoice >= 1 && picChoice <= picCount) {
                 int realIndex = picIndices[picChoice - 1]; // Mengambil indeks asli dari array
-                strncpy(newNode->data.pic, daftarUser[realIndex].username, MAX_LENGTH);
-                newNode->data.pic[MAX_LENGTH] = '\0';
+                
+                // --- REVISI MEMORI ---
+                newNode->data.picIndex = realIndex; // Cukup oper angkanya, tidak perlu strcpy
             } else {
-                serial_cetak_teks_ln_flash(PSTR("[!] Pilihan salah! PIC otomatis di-set ke '-'."));
-                strcpy(newNode->data.pic, "-");
+                serial_cetak_teks_ln_flash(PSTR("[!] Pilihan salah! PIC otomatis di-set ke Tidak Diketahui."));
+                newNode->data.picIndex = -1;
             }
         }
         // ------------------------------------

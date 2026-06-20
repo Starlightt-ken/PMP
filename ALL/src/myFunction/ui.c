@@ -3,7 +3,11 @@
 #include "serial_utils.h" 
 #include "helper.h"
 #include "memory_management.h"
+#include "user.h" // Wajib dipanggil untuk membaca daftarUser
 #include <string.h>
+
+// Ambil variabel global dari file user/login
+extern User daftarUser[];
 
 void displayMenu() {
     serial_cetak_teks_ln_flash(PSTR("\n====== MENU INVENTARIS ======"));
@@ -77,11 +81,22 @@ void displayItemData(const ItemData *item) {
     serial_cetak_teks_flash(PSTR("Rusak         : "));
     serial_cetak_angka_ln(item->stock.broken);
 
+    // --- REVISI DIET MEMORI ---
+    // Sekarang kita memanggil nama asli berdasarkan nomor index yang disimpan
     serial_cetak_teks_flash(PSTR("Pemilik       : "));
-    serial_cetak_teks_ln(item->owner);
+    if (item->ownerIndex >= 0 && item->ownerIndex < MAX_USERS) {
+        serial_cetak_teks_ln(daftarUser[item->ownerIndex].username);
+    } else {
+        serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
+    }
 
     serial_cetak_teks_flash(PSTR("PIC           : "));
-    serial_cetak_teks_ln(item->pic);
+    if (item->picIndex >= 0 && item->picIndex < MAX_USERS) {
+        serial_cetak_teks_ln(daftarUser[item->picIndex].username);
+    } else {
+        serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
+    }
+    // ---------------------------
 
     serial_cetak_teks_ln_flash(PSTR("------------------------"));
 }
@@ -144,6 +159,8 @@ void printMemory(const InventoryList *l) {
     serial_cetak_teks_ln_flash(PSTR(" bytes"));
 }
 
+// Fungsi getInput TIDAK dipakai lagi oleh Admin karena Admin punya menu tambah sendiri,
+// tapi kita sesuaikan saja logika index-nya agar aman jika dipanggil oleh sistem lain.
 void getInput(InventoryList *l, InventoryNode *newNode, ErrorCode *err) {
     char buffer[MAX_LENGTH + 1]; 
     uint8_t value = 0;
@@ -235,23 +252,12 @@ void getInput(InventoryList *l, InventoryNode *newNode, ErrorCode *err) {
     newNode->data.stock.borrowed = 0;
     newNode->data.stock.broken = 0;
 
-    serial_cetak_teks_flash(PSTR("Pemilik : "));
-    readSerialString(newNode->data.owner, err);
-    if (*err != ERR_OK) return;
-
-    if (strlen(newNode->data.owner) == 0) {
-        *err = ERR_OWNER_EMPTY;
-        return;
-    }
-
-    serial_cetak_teks_flash(PSTR("PIC : "));
-    readSerialString(newNode->data.pic, err);
-    if (*err != ERR_OK) return;
-
-    if (strlen(newNode->data.pic) == 0) {
-        *err = ERR_PIC_EMPTY;
-        return;
-    }
+    // --- REVISI DIET MEMORI ---
+    // Karena getInput ini fungsi jadul, kita set index default ke -1 (Tidak Diketahui)
+    // agar aman. Input yang sebenarnya dihandle oleh Admin Menu.
+    newNode->data.ownerIndex = -1; 
+    newNode->data.picIndex = -1;
+    // ---------------------------
 
     *err = ERR_OK;
 }

@@ -1,7 +1,11 @@
 #include "inventory_operation.h"
 #include "serial_bridge.h"
+#include "user.h" // Wajib dipanggil untuk modifikasi akun
 #include <stdlib.h>
 #include <string.h>
+
+extern User daftarUser[];
+extern int totalUser;
 
 void destroyList(InventoryList *l, ErrorCode *err) {
     destroyListCore(l, err);
@@ -198,8 +202,20 @@ void processByName(InventoryList *l, const char *targetName, MenuCommand command
             serial_cetak_teks_flash(PSTR("- ID       : ")); serial_cetak_angka_ln(curr->data.itemId);
             serial_cetak_teks_flash(PSTR("- Kategori : ")); printCategory((ItemCategory)curr->data.category);
             serial_cetak_teks_flash(PSTR("- Lokasi   : ")); printLocation((ItemLocation)curr->data.location);
-            serial_cetak_teks_flash(PSTR("- Pemilik  : ")); serial_cetak_teks_ln(curr->data.owner);
-            serial_cetak_teks_flash(PSTR("- PIC      : ")); serial_cetak_teks_ln(curr->data.pic);
+            
+            serial_cetak_teks_flash(PSTR("- Pemilik  : ")); 
+            if (curr->data.ownerIndex >= 0 && curr->data.ownerIndex < MAX_USERS) {
+                serial_cetak_teks_ln(daftarUser[curr->data.ownerIndex].username);
+            } else {
+                serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
+            }
+
+            serial_cetak_teks_flash(PSTR("- PIC      : ")); 
+            if (curr->data.picIndex >= 0 && curr->data.picIndex < MAX_USERS) {
+                serial_cetak_teks_ln(daftarUser[curr->data.picIndex].username);
+            } else {
+                serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
+            }
 
             if (command == CMD_DELETE) {
                 serial_cetak_teks_flash(PSTR("Hapus barang ini? (y/n): "));
@@ -267,8 +283,22 @@ void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
     serial_cetak_teks_flash(PSTR("1. Nama    : ")); serial_cetak_teks_ln(curr->data.itemName);
     serial_cetak_teks_flash(PSTR("2. Kategori: ")); printCategory((ItemCategory)curr->data.category);
     serial_cetak_teks_flash(PSTR("3. Lokasi  : ")); printLocation((ItemLocation)curr->data.location);
-    serial_cetak_teks_flash(PSTR("4. Pemilik : ")); serial_cetak_teks_ln(curr->data.owner);
-    serial_cetak_teks_flash(PSTR("5. PIC     : ")); serial_cetak_teks_ln(curr->data.pic);
+    
+    // --- REVISI DIET MEMORI ---
+    serial_cetak_teks_flash(PSTR("4. Pemilik : ")); 
+    if (curr->data.ownerIndex >= 0 && curr->data.ownerIndex < MAX_USERS) {
+        serial_cetak_teks_ln(daftarUser[curr->data.ownerIndex].username);
+    } else {
+        serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
+    }
+
+    serial_cetak_teks_flash(PSTR("5. PIC     : ")); 
+    if (curr->data.picIndex >= 0 && curr->data.picIndex < MAX_USERS) {
+        serial_cetak_teks_ln(daftarUser[curr->data.picIndex].username);
+    } else {
+        serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
+    }
+    
     serial_cetak_teks_flash(PSTR("Pilih data yang ingin diubah (1-5): "));
 
     char buffer[MAX_LENGTH + 1];
@@ -283,19 +313,24 @@ void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
         return;
     }
 
-    serial_cetak_teks_flash(PSTR("Masukkan Data Baru: "));
-    readSerialString(buffer, err);
-    if (*err != ERR_OK) return;
-
     uint8_t numericValue = 0;
 
     switch (choice) {
         case '1': { 
+            serial_cetak_teks_flash(PSTR("Masukkan Nama Baru: "));
+            readSerialString(buffer, err);
+            if (*err != ERR_OK) return;
+            
             strncpy(curr->data.itemName, buffer, MAX_LENGTH);
             curr->data.itemName[MAX_LENGTH] = '\0';
+            serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
             break;
         }
         case '2': { 
+            serial_cetak_teks_flash(PSTR("Masukkan Kategori Baru (0-2): "));
+            readSerialString(buffer, err);
+            if (*err != ERR_OK) return;
+            
             stringToInt(buffer, &numericValue, err);
             if (*err != ERR_OK) return;
             if (numericValue > 2) { 
@@ -303,9 +338,14 @@ void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
                 return;
             }
             curr->data.category = numericValue;
+            serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
             break;
         }
         case '3': { 
+            serial_cetak_teks_flash(PSTR("Masukkan Lokasi Baru (0-1): "));
+            readSerialString(buffer, err);
+            if (*err != ERR_OK) return;
+            
             stringToInt(buffer, &numericValue, err);
             if (*err != ERR_OK) return;
             if (numericValue > 1) {
@@ -313,20 +353,56 @@ void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
                 return;
             }
             curr->data.location = numericValue;
+            serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
             break;
         }
         case '4': { 
-            strncpy(curr->data.owner, buffer, MAX_LENGTH);
-            curr->data.owner[MAX_LENGTH] = '\0';
+            serial_cetak_teks_ln_flash(PSTR("\n--- Daftar Pengguna (Admin) ---"));
+            for (int i = 0; i < totalUser; i++) {
+                if (daftarUser[i].role == ROLE_ADMIN) {
+                    char numStr[10];
+                    sprintf(numStr, "%d. ", i);
+                    serial_cetak_teks(numStr);
+                    serial_cetak_teks_ln(daftarUser[i].username);
+                }
+            }
+            serial_cetak_teks_flash(PSTR("Pilih ID Admin (0-4): "));
+            readSerialString(buffer, err);
+            if (*err != ERR_OK) return;
+            
+            stringToInt(buffer, &numericValue, err);
+            if (*err == ERR_OK && numericValue < totalUser && daftarUser[numericValue].role == ROLE_ADMIN) {
+                curr->data.ownerIndex = numericValue;
+                serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
+            } else {
+                serial_cetak_teks_ln_flash(PSTR("GAGAL: Pilihan Admin tidak valid."));
+            }
             break;
         }
         case '5': { 
-            strncpy(curr->data.pic, buffer, MAX_LENGTH);
-            curr->data.pic[MAX_LENGTH] = '\0';
+            serial_cetak_teks_ln_flash(PSTR("\n--- Daftar PIC ---"));
+            for (int i = 0; i < totalUser; i++) {
+                if (daftarUser[i].role == ROLE_PIC) {
+                    char numStr[10];
+                    sprintf(numStr, "%d. ", i);
+                    serial_cetak_teks(numStr);
+                    serial_cetak_teks_ln(daftarUser[i].username);
+                }
+            }
+            serial_cetak_teks_flash(PSTR("Pilih ID PIC (0-4): "));
+            readSerialString(buffer, err);
+            if (*err != ERR_OK) return;
+            
+            stringToInt(buffer, &numericValue, err);
+            if (*err == ERR_OK && numericValue < totalUser && daftarUser[numericValue].role == ROLE_PIC) {
+                curr->data.picIndex = numericValue;
+                serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
+            } else {
+                serial_cetak_teks_ln_flash(PSTR("GAGAL: Pilihan PIC tidak valid."));
+            }
             break;
         }
     }
-    serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
 }
 
 void modifyStockInventoryNode(InventoryNode *curr, ErrorCode *err) {
