@@ -54,46 +54,50 @@ void inisialisasiSistem(InventoryList *l) {
         newNode->data.stock.borrowed = 0;
         newNode->data.stock.broken = 0;
         
+        // --- REVISI DIET MEMORI ---
+        // Kita buang strcpy_P untuk PIC, dan ganti dengan memasukkan angkanya saja
         switch(i) {
             case 0:
                 strcpy_P(newNode->data.itemName, PSTR("Motor Servo"));
-                strcpy_P(newNode->data.pic, PSTR("Naya"));
+                newNode->data.picIndex = 1; // 1 = Naya
                 break;
             case 1:
                 strcpy_P(newNode->data.itemName, PSTR("Motor DC"));
-                strcpy_P(newNode->data.pic, PSTR("Naya"));
+                newNode->data.picIndex = 1;
                 break;
             case 2:
                 strcpy_P(newNode->data.itemName, PSTR("Relay Module"));
-                strcpy_P(newNode->data.pic, PSTR("Naya"));
+                newNode->data.picIndex = 1;
                 break;
             case 3:
                 strcpy_P(newNode->data.itemName, PSTR("Sensor Suhu"));
-                strcpy_P(newNode->data.pic, PSTR("Imam"));
+                newNode->data.picIndex = 2; // 2 = Imam
                 break;
             case 4:
                 strcpy_P(newNode->data.itemName, PSTR("Sensor Jarak"));
-                strcpy_P(newNode->data.pic, PSTR("Imam"));
+                newNode->data.picIndex = 2;
                 break;
             case 5:
                 strcpy_P(newNode->data.itemName, PSTR("Sensor Cahaya"));
-                strcpy_P(newNode->data.pic, PSTR("Imam"));
+                newNode->data.picIndex = 2;
                 break;
             case 6:
                 strcpy_P(newNode->data.itemName, PSTR("Arduino Uno"));
-                strcpy_P(newNode->data.pic, PSTR("Naya"));
+                newNode->data.picIndex = 1;
                 break;
             case 7:
                 strcpy_P(newNode->data.itemName, PSTR("ESP32"));
-                strcpy_P(newNode->data.pic, PSTR("Naya"));
+                newNode->data.picIndex = 1;
                 break;
             case 8:
                 strcpy_P(newNode->data.itemName, PSTR("STM32"));
-                strcpy_P(newNode->data.pic, PSTR("Naya"));
+                newNode->data.picIndex = 1;
                 break;
         }
         
-        strcpy_P(newNode->data.owner, PSTR("AdminA")); 
+        // Owner juga diganti jadi angka index saja (0 = AdminA)
+        newNode->data.ownerIndex = 0; 
+        // ---------------------------
         
         newNode->next = NULL;
         insertNodeToList(l, newNode, &err);

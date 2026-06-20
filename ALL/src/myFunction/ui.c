@@ -3,7 +3,7 @@
 #include "serial_utils.h" 
 #include "helper.h"
 #include "memory_management.h"
-#include "user.h" // Wajib dipanggil untuk membaca daftarUser
+#include "user.h" 
 #include <string.h>
 
 // Ambil variabel global dari file user/login
@@ -81,8 +81,6 @@ void displayItemData(const ItemData *item) {
     serial_cetak_teks_flash(PSTR("Rusak         : "));
     serial_cetak_angka_ln(item->stock.broken);
 
-    // --- REVISI DIET MEMORI ---
-    // Sekarang kita memanggil nama asli berdasarkan nomor index yang disimpan
     serial_cetak_teks_flash(PSTR("Pemilik       : "));
     if (item->ownerIndex >= 0 && item->ownerIndex < MAX_USERS) {
         serial_cetak_teks_ln(daftarUser[item->ownerIndex].username);
@@ -159,8 +157,6 @@ void printMemory(const InventoryList *l) {
     serial_cetak_teks_ln_flash(PSTR(" bytes"));
 }
 
-// Fungsi getInput TIDAK dipakai lagi oleh Admin karena Admin punya menu tambah sendiri,
-// tapi kita sesuaikan saja logika index-nya agar aman jika dipanggil oleh sistem lain.
 void getInput(InventoryList *l, InventoryNode *newNode, ErrorCode *err) {
     char buffer[MAX_LENGTH + 1]; 
     uint8_t value = 0;
@@ -252,9 +248,7 @@ void getInput(InventoryList *l, InventoryNode *newNode, ErrorCode *err) {
     newNode->data.stock.borrowed = 0;
     newNode->data.stock.broken = 0;
 
-    // --- REVISI DIET MEMORI ---
-    // Karena getInput ini fungsi jadul, kita set index default ke -1 (Tidak Diketahui)
-    // agar aman. Input yang sebenarnya dihandle oleh Admin Menu.
+
     newNode->data.ownerIndex = -1; 
     newNode->data.picIndex = -1;
     // ---------------------------

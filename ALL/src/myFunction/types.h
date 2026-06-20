@@ -27,15 +27,15 @@ typedef struct {
 
 typedef struct {
     uint8_t itemId;
-    char itemName[MAX_LENGTH + 1];
+    char itemName[MAX_LENGTH + 1]; // 19 bytes
 
-    uint8_t category : 4;
-    uint8_t location : 4;
+    uint8_t category : 4;          // 0.5 byte
+    uint8_t location : 4;          // 0.5 byte
 
-    StockInfo stock;
+    StockInfo stock;               // 3 bytes
 
-    char owner[MAX_LENGTH + 1];
-    char pic[MAX_LENGTH + 1];
+    int8_t ownerIndex; 
+    int8_t picIndex;   
 } ItemData;
 
 typedef struct InventoryNode {
