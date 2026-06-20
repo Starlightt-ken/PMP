@@ -67,14 +67,14 @@ void displayItemData(const ItemData *item) {
     serial_cetak_angka_ln(item->stock.broken);
 
     serial_cetak_teks_flash(PSTR("Pemilik       : "));
-    if (item->ownerIndex >= 0 && item->ownerIndex < MAX_USERS) {
+    if (item->ownerIndex >= 0 && item->ownerIndex < MAX_USERS && daftarUser[item->ownerIndex].role == ROLE_ADMIN) {
         serial_cetak_teks_ln(daftarUser[item->ownerIndex].username);
     } else {
         serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
     }
 
     serial_cetak_teks_flash(PSTR("PIC           : "));
-    if (item->picIndex >= 0 && item->picIndex < MAX_USERS) {
+    if (item->picIndex >= 0 && item->picIndex < MAX_USERS && daftarUser[item->picIndex].role == ROLE_PIC) {
         serial_cetak_teks_ln(daftarUser[item->picIndex].username);
     } else {
         serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
