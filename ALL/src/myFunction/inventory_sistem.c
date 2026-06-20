@@ -54,8 +54,6 @@ void inisialisasiSistem(InventoryList *l) {
         newNode->data.stock.borrowed = 0;
         newNode->data.stock.broken = 0;
         
-        // --- REVISI DIET MEMORI ---
-        // Kita buang strcpy_P untuk PIC, dan ganti dengan memasukkan angkanya saja
         switch(i%9) {
             case 0:
                 strcpy_P(newNode->data.itemName, PSTR("Motor Servo"));

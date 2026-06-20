@@ -109,7 +109,7 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
         newNode->data.stock.borrowed = 0; 
         newNode->data.stock.broken = 0; 
         
-        // --- REVISI DIET MEMORI: Menggunakan nama Admin yang sedang login ---
+        // ---  Menggunakan nama Admin yang sedang login ---
         newNode->data.ownerIndex = indexUserAktif;
         
         // --- PILIH PIC ---
