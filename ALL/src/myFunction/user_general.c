@@ -26,8 +26,6 @@ void menuUserGeneral(InventoryList *l) {
 
         char choice = buffer[0];
         
-        // Memanggil fungsi membersihkan serial buffer.
-        // Asumsi fungsi clearSerial() buatan kalian ada di serial_utils.h
         clearSerial(); 
 
         switch (choice) {

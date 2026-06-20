@@ -1,6 +1,6 @@
 #include "inventory_operation.h"
 #include "serial_bridge.h"
-#include "user.h" // Wajib dipanggil untuk modifikasi akun
+#include "user.h" 
 #include <stdlib.h>
 #include <string.h>
 
@@ -35,7 +35,7 @@ void runInventoryMenu(InventoryList *l, MenuCommand command, ErrorCode *err) {
         return;
     }
 
-    serial_bersihkan(); // Pengganti clearSerial()
+    serial_bersihkan(); 
 
     switch (command) {
         case CMD_SEARCH: 

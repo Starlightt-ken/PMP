@@ -23,7 +23,7 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
     
     while (true) {
         char buffer[MAX_LENGTH + 1];
-        uint8_t itemId, totalStock, categoryId, locationId; // Ditambahkan variabel locationId
+        uint8_t itemId, totalStock, categoryId, locationId; 
 
         // 1. Minta ID
         serial_cetak_teks_flash(PSTR("\nMasukkan ID Barang Baru: "));
@@ -51,7 +51,7 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
         char itemName[MAX_LENGTH + 1];
         readSerialString(itemName, err);
 
-        // 3. Minta Kategori (Disamakan dengan UI getInput)
+        // 3. Minta Kategori 
         serial_cetak_teks_ln_flash(PSTR("\nDaftar Kategori"));
         for (uint8_t i = 0; i < KATEGORI_COUNT; i++) {
             serial_cetak_angka(i);
@@ -65,11 +65,11 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
         // Validasi Kategori
         if (*err != ERR_OK || categoryId >= KATEGORI_COUNT) {
             serial_cetak_teks_ln_flash(PSTR("GAGAL: Pilihan Kategori Tidak Ada. Ulangi input."));
-            *err = ERR_OK; // Reset error agar while-loop tidak rusak
+            *err = ERR_OK;
             continue;
         }
 
-        // 4. Minta Lokasi (Diadaptasi dari getInput)
+        // 4. Minta Lokasi 
         serial_cetak_teks_ln_flash(PSTR("\nDaftar Lokasi"));
         for (uint8_t i = 0; i < LOKASI_COUNT; i++) {
             serial_cetak_angka(i);
@@ -92,7 +92,7 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
         readSerialString(buffer, err);
         stringToInt(buffer, &totalStock, err);
 
-        // Memesan memori (Dilakukan setelah semua input agar memori aman jika input gagal)
+        // Memesan memori 
         InventoryNode *newNode = (InventoryNode *)malloc(sizeof(InventoryNode));
         if (newNode == NULL) {
             serial_cetak_teks_ln_flash(PSTR("\nGAGAL: Memori Arduino penuh!"));

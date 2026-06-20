@@ -40,7 +40,7 @@ extern "C" {
     void serial_baca_string(char* buffer, uint8_t max_len) {
         uint8_t index = 0;
         
-        // Looping akan menahan program SELAMANYA sampai user menekan Enter
+
         while (true) {
             if (Serial.available()) {
                 char c = Serial.read();
@@ -60,7 +60,6 @@ extern "C" {
                     buffer[index++] = c;
                 }
             } else {
-                // Kasih jeda sedikit agar IC Arduino tidak kerja terlalu berat saat menunggu
                 delay(10);
             }
         }

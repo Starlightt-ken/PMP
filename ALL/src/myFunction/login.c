@@ -135,9 +135,6 @@ void jalankanLogin(InventoryList *l) {
     readSerialString(password, &err);
 
     for (int i = 0; i < totalUser; i++) {
-        // C murni tidak punya strcasecmp standar di semua compiler, kita pakai strcmp biasa atau manual, 
-        // tapi jika compiler kalian support, strcasecmp bisa dari <strings.h>.
-        // Sebagai jalan aman C murni, kita ubah ke lowercase manual untuk perbandingan:
         char target_user[MAX_STR], current_user[MAX_STR];
         toLowerCase(target_user, username);
         toLowerCase(current_user, daftarUser[i].username);

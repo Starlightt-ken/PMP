@@ -3,7 +3,7 @@
 #include <string.h>
 
 void clearSerial() {
-    // Kita panggil jembatan khusus pembersih buffer
+    
     serial_bersihkan();
 }
 
@@ -13,7 +13,7 @@ void readSerialString(char *buffer, ErrorCode *err) {
         return;
     }
 
-    // Memanfaatkan fungsi jembatan yang otomatis menangani timeout & membaca string
+    
     serial_baca_string(buffer, MAX_LENGTH);
 
     if (buffer[0] == '\0') {
