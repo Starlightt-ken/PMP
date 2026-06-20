@@ -4,6 +4,11 @@
 #include "helper.h"
 #include "tampil_barang.h" 
 #include "serial_bridge.h" // Wajib dipanggil untuk output
+#include "user.h"          // Wajib dipanggil agar tipe data User dikenali
+
+// Mengambil variabel global dari file login agar sistem tahu siapa yang sedang aktif
+extern User daftarUser[];
+extern int indexUserAktif;
 
 // =========================================================
 // FUNGSI INTERNAL ADMIN
@@ -70,7 +75,14 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
         newNode->data.stock.borrowed = 0; 
         newNode->data.stock.broken = 0; 
         
-        strcpy(newNode->data.owner, "Admin"); 
+        // --- MODIFIKASI: Menggunakan nama Admin yang sedang login ---
+        if (indexUserAktif != -1) {
+            strncpy(newNode->data.owner, daftarUser[indexUserAktif].username, MAX_LENGTH);
+            newNode->data.owner[MAX_LENGTH] = '\0'; // Keamanan string
+        } else {
+            strcpy(newNode->data.owner, "Admin_Unknown"); 
+        }
+        
         strcpy(newNode->data.pic, "-");       
         
         newNode->next = NULL;
