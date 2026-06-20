@@ -4,13 +4,11 @@
 #include "types.h"
 #include "errors.h"
 
-void displayMenu();
 void displayList(const InventoryList *l, ErrorCode *err);
 void displayItemData(const ItemData *item);
 void printErrorMessage(ErrorCode err);
 void printCategory(ItemCategory cat);
 void printLocation(ItemLocation loc);
 void printMemory(const InventoryList *l);
-void getInput(InventoryList *l, InventoryNode *newNode, ErrorCode *err);
 
 #endif

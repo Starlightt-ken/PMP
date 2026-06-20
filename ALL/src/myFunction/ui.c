@@ -9,21 +9,6 @@
 // Ambil variabel global dari file user/login
 extern User daftarUser[];
 
-void displayMenu() {
-    serial_cetak_teks_ln_flash(PSTR("\n====== MENU INVENTARIS ======"));
-    serial_cetak_teks_ln_flash(PSTR("1. Menambah Data"));
-    serial_cetak_teks_ln_flash(PSTR("2. Menghapus Data"));
-    serial_cetak_teks_ln_flash(PSTR("3. Mencari Data"));
-    serial_cetak_teks_ln_flash(PSTR("4. Memperbarui Stock"));
-    serial_cetak_teks_ln_flash(PSTR("5. Memperbarui Data"));
-    serial_cetak_teks_ln_flash(PSTR("6. Menampilkan Semua Data"));
-    serial_cetak_teks_ln_flash(PSTR("7. Menghapus Semua Data"));
-    serial_cetak_teks_ln_flash(PSTR("8. Menampilkan Sisa SRAM"));
-    serial_cetak_teks_ln_flash(PSTR("9. Inisialisasi Data"));
-    serial_cetak_teks_ln_flash(PSTR("============================="));
-    serial_cetak_teks_flash(PSTR("Pilih menu: "));
-}
-
 void displayList(const InventoryList *l, ErrorCode *err) {
     if (l == NULL) {
         *err = ERR_DATABASE_NULL;
@@ -148,110 +133,7 @@ void printMemory(const InventoryList *l) {
     serial_cetak_teks_flash(PSTR("Total Data      : "));
     serial_cetak_angka_ln(l->size);
 
-    serial_cetak_teks_flash(PSTR("Ukuran Node     : "));
-    serial_cetak_angka((int)sizeof(InventoryNode));
-    serial_cetak_teks_ln_flash(PSTR(" bytes"));
-
     serial_cetak_teks_flash(PSTR("RAM Tersisa     : "));
     serial_cetak_angka(freeRam);
     serial_cetak_teks_ln_flash(PSTR(" bytes"));
-}
-
-void getInput(InventoryList *l, InventoryNode *newNode, ErrorCode *err) {
-    char buffer[MAX_LENGTH + 1]; 
-    uint8_t value = 0;
-
-    serial_bersihkan();
-    serial_cetak_teks_ln_flash(PSTR("\n===== INPUT BARANG ====="));
-
-    serial_cetak_teks_flash(PSTR("ID Barang : "));
-    readSerialString(buffer, err);
-    if (*err != ERR_OK) return;
-
-    stringToInt(buffer, &value, err);
-    if (*err != ERR_OK) {
-        if (*err == ERR_STRING_EMPTY) *err = ERR_ID_EMPTY;
-        return;
-    }
-
-    bool isExist = false;
-    isItemIdExist(l, value, &isExist, err);
-
-    if (isExist) {
-        serial_cetak_teks_ln_flash(PSTR("\nID barang telah dipakai"));
-        *err = ERR_OK;
-        return;
-    }
-
-    newNode->data.itemId = value;
-
-    serial_cetak_teks_flash(PSTR("Nama Barang : "));
-    readSerialString(newNode->data.itemName, err);
-    if (*err != ERR_OK) return;
-
-    if (strlen(newNode->data.itemName) == 0) {
-        *err = ERR_NAME_EMPTY;
-        return;
-    }
-
-    serial_cetak_teks_ln_flash(PSTR("\nDaftar Kategori"));
-    for (uint8_t i = 0; i < KATEGORI_COUNT; i++) {
-        serial_cetak_angka(i);
-        serial_cetak_teks_flash(PSTR(". "));
-        printCategory((ItemCategory)i);
-    }
-
-    serial_cetak_teks_flash(PSTR("Pilih kategori : "));
-    readSerialString(buffer, err);
-    if (*err != ERR_OK) return;
-
-    stringToInt(buffer, &value, err);
-    if (*err != ERR_OK || value >= KATEGORI_COUNT) {
-        serial_cetak_teks_ln_flash(PSTR("Pilihan Tidak Ada"));
-        *err = ERR_OK;
-        return;
-    }
-
-    newNode->data.category = value;
-
-    serial_cetak_teks_ln_flash(PSTR("\nDaftar Lokasi"));
-    for (uint8_t i = 0; i < LOKASI_COUNT; i++) {
-        serial_cetak_angka(i);
-        serial_cetak_teks_flash(PSTR(". "));
-        printLocation((ItemLocation)i);
-    }
-
-    serial_cetak_teks_flash(PSTR("Pilih lokasi : "));
-    readSerialString(buffer, err);
-    if (*err != ERR_OK) return;
-
-    stringToInt(buffer, &value, err);
-    if (*err != ERR_OK || value >= LOKASI_COUNT) {
-        serial_cetak_teks_ln_flash(PSTR("Pilihan Tidak Ada"));
-        *err = ERR_OK;
-        return;
-    }
-
-    newNode->data.location = value;
-
-    serial_cetak_teks_flash(PSTR("\nJumlah Stock : "));
-    readSerialString(buffer, err);
-    if (*err != ERR_OK) return;
-
-    stringToInt(buffer, &value, err);
-    if (*err != ERR_OK) {
-        if (*err == ERR_STRING_EMPTY) *err = ERR_STOCK_EMPTY;
-        return;
-    }
-
-    newNode->data.stock.totalStock = value;
-    newNode->data.stock.borrowed = 0;
-    newNode->data.stock.broken = 0;
-
-
-    newNode->data.ownerIndex = -1; 
-    newNode->data.picIndex = -1;
-    // ---------------------------
-
-    *err = ERR_OK;
 }

@@ -21,46 +21,6 @@ void destroyList(InventoryList *l, ErrorCode *err) {
     }
 }
 
-void insertList(InventoryList *l, ErrorCode *err) {
-    if (l == NULL) {
-        *err = ERR_DATABASE_NULL;
-        return;
-    }
-
-    if (l->size >= MAX_CAPACITY) {
-        *err = ERR_LIST_FULL;
-        return;
-    }
-
-    InventoryNode *newNode = (InventoryNode*) malloc(sizeof(InventoryNode));
-    if (newNode == NULL) {
-        *err = ERR_NODE_ALLOCATION_FAILED;
-        serial_cetak_teks_ln_flash(PSTR("Gagal alokasi node"));
-        return;
-    }
-
-    memset(newNode, 0, sizeof(InventoryNode));
-    newNode->next = NULL;
-
-    getInput(l, newNode, err);
-
-    if (*err != ERR_OK) {
-        free(newNode);
-        return;
-    }
-
-    insertNodeToList(l, newNode, err);
-
-    if (*err != ERR_OK) {
-        free(newNode);
-        return;
-    }
-
-    serial_cetak_teks_ln_flash(PSTR("\n-- Rangkuman Data Baru --"));
-    displayItemData(&newNode->data);
-    serial_cetak_teks_ln_flash(PSTR("BERHASIL DITAMBAHKAN"));
-}
-
 void runInventoryMenu(InventoryList *l, MenuCommand command, ErrorCode *err) {
     *err = ERR_OK;
 
@@ -283,23 +243,15 @@ void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
     serial_cetak_teks_flash(PSTR("1. Nama    : ")); serial_cetak_teks_ln(curr->data.itemName);
     serial_cetak_teks_flash(PSTR("2. Kategori: ")); printCategory((ItemCategory)curr->data.category);
     serial_cetak_teks_flash(PSTR("3. Lokasi  : ")); printLocation((ItemLocation)curr->data.location);
-    
-    // --- REVISI DIET MEMORI ---
-    serial_cetak_teks_flash(PSTR("4. Pemilik : ")); 
-    if (curr->data.ownerIndex >= 0 && curr->data.ownerIndex < MAX_USERS) {
-        serial_cetak_teks_ln(daftarUser[curr->data.ownerIndex].username);
-    } else {
-        serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
-    }
 
-    serial_cetak_teks_flash(PSTR("5. PIC     : ")); 
+    serial_cetak_teks_flash(PSTR("4. PIC     : ")); 
     if (curr->data.picIndex >= 0 && curr->data.picIndex < MAX_USERS) {
         serial_cetak_teks_ln(daftarUser[curr->data.picIndex].username);
     } else {
         serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
     }
     
-    serial_cetak_teks_flash(PSTR("Pilih data yang ingin diubah (1-5): "));
+    serial_cetak_teks_flash(PSTR("Pilih data yang ingin diubah (1-4): "));
 
     char buffer[MAX_LENGTH + 1];
     readSerialString(buffer, err);
@@ -308,7 +260,7 @@ void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
     char choice = buffer[0];
     serial_bersihkan();
 
-    if (choice < '1' || choice > '5') {
+    if (choice < '1' || choice > '4') {
         serial_cetak_teks_ln_flash(PSTR("Pilihan Tidak Ada"));
         return;
     }
@@ -357,29 +309,6 @@ void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
             break;
         }
         case '4': { 
-            serial_cetak_teks_ln_flash(PSTR("\n--- Daftar Pengguna (Admin) ---"));
-            for (int i = 0; i < totalUser; i++) {
-                if (daftarUser[i].role == ROLE_ADMIN) {
-                    char numStr[10];
-                    sprintf(numStr, "%d. ", i);
-                    serial_cetak_teks(numStr);
-                    serial_cetak_teks_ln(daftarUser[i].username);
-                }
-            }
-            serial_cetak_teks_flash(PSTR("Pilih ID Admin (0-4): "));
-            readSerialString(buffer, err);
-            if (*err != ERR_OK) return;
-            
-            stringToInt(buffer, &numericValue, err);
-            if (*err == ERR_OK && numericValue < totalUser && daftarUser[numericValue].role == ROLE_ADMIN) {
-                curr->data.ownerIndex = numericValue;
-                serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
-            } else {
-                serial_cetak_teks_ln_flash(PSTR("GAGAL: Pilihan Admin tidak valid."));
-            }
-            break;
-        }
-        case '5': { 
             serial_cetak_teks_ln_flash(PSTR("\n--- Daftar PIC ---"));
             for (int i = 0; i < totalUser; i++) {
                 if (daftarUser[i].role == ROLE_PIC) {
@@ -389,7 +318,7 @@ void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
                     serial_cetak_teks_ln(daftarUser[i].username);
                 }
             }
-            serial_cetak_teks_flash(PSTR("Pilih ID PIC (0-4): "));
+            serial_cetak_teks_flash(PSTR("Pilih ID PIC: "));
             readSerialString(buffer, err);
             if (*err != ERR_OK) return;
             
