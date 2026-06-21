@@ -43,7 +43,7 @@ void inisialisasiSistem(InventoryList *l) {
                             KATEGORI_SENSOR, KATEGORI_SENSOR, KATEGORI_SENSOR,
                             KATEGORI_MIKROKONTROLLER, KATEGORI_MIKROKONTROLLER, KATEGORI_MIKROKONTROLLER};
 
-    // DIKEMBALIKAN KE 9 BARANG AGAR MUDAH DIKELOLA
+    
     for (uint8_t i = 0; i < 9; i++) { 
         InventoryNode *newNode = (InventoryNode *)malloc(sizeof(InventoryNode));
         if (newNode == NULL) continue;
