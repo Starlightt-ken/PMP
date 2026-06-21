@@ -21,35 +21,36 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
         char buffer[MAX_LENGTH + 1];
         uint8_t itemId, totalStock, categoryId, locationId; 
 
+        //input dan validasi ID
         serial_cetak_teks_flash(PSTR("\nMasukkan ID Barang Baru: "));
         readSerialString(buffer, err);
         if (*err != ERR_OK) return;
         
-        stringToInt(buffer, &itemId, err);
+        stringToInt(buffer, &itemId, err); //mengubah input menjadi angka untuk dicocokan 
         if (*err != ERR_OK) {
             serial_cetak_teks_ln_flash(PSTR("GAGAL: Format ID tidak valid! Harap masukkan angka yang benar."));
             *err = ERR_OK; 
-            continue;      
+            continue; //mengulang loop dari awal 
         }
-
+        //input yang membuat admin keluar
         if (itemId == 0) {
             serial_cetak_teks_ln_flash(PSTR("Sesi tambah barang diakhiri."));
             break; 
         }
-
+        //mengecek apakah ada duplikasi dari ID 
         bool isExist = false;
-        isItemIdExist(l, itemId, &isExist, err);
+        isItemIdExist(l, itemId, &isExist, err); //melihat keseluruhan invetoris sesuai dengan ID yang ada
         if (isExist) {
             serial_cetak_teks_ln_flash(PSTR("GAGAL: ID tersebut sudah terdaftar di gudang!"));
             serial_cetak_teks_ln_flash(PSTR("Gunakan menu PIC jika hanya ingin menambah angka stoknya."));
-            continue; 
+            continue; //mengembalikan program 
         }
-
+        //input keterangan dari barang 
         serial_cetak_teks_flash(PSTR("Masukkan Nama Barang: "));
         char itemName[MAX_LENGTH + 1];
         readSerialString(itemName, err);
 
-        serial_cetak_teks_ln_flash(PSTR("\nDaftar Kategori"));
+        serial_cetak_teks_ln_flash(PSTR("\nDaftar Kategori")); //memilih kategori
         for (uint8_t i = 0; i < KATEGORI_COUNT; i++) {
             serial_cetak_angka(i);
             serial_cetak_teks_flash(PSTR(". "));
@@ -65,7 +66,7 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
             continue;
         }
 
-        serial_cetak_teks_ln_flash(PSTR("\nDaftar Lokasi"));
+        serial_cetak_teks_ln_flash(PSTR("\nDaftar Lokasi")); //memilih daftar lokasi 
         for (uint8_t i = 0; i < LOKASI_COUNT; i++) {
             serial_cetak_angka(i);
             serial_cetak_teks_flash(PSTR(". "));
@@ -81,16 +82,16 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
             continue;
         }
 
-        serial_cetak_teks_flash(PSTR("\nMasukkan Jumlah Stok: "));
+        serial_cetak_teks_flash(PSTR("\nMasukkan Jumlah Stok: ")); //memilih jumlah stok 
         readSerialString(buffer, err);
         stringToInt(buffer, &totalStock, err);
-
+        //alokasi memori untuk barang baru (menambah ruang kosong )
         InventoryNode *newNode = (InventoryNode *)malloc(sizeof(InventoryNode));
         if (newNode == NULL) {
             serial_cetak_teks_ln_flash(PSTR("\nGAGAL: Memori Arduino penuh!"));
             break;
         }
-
+        //pengisian data 
         newNode->data.itemId = itemId;
         strncpy(newNode->data.itemName, itemName, MAX_LENGTH);
         newNode->data.category = categoryId;
@@ -155,7 +156,7 @@ void tambahBarangAdmin(InventoryList *l, ErrorCode *err) {
 
 void tarikBarangAdmin(InventoryList *l, ErrorCode *err) {
     *err = ERR_OK;
-
+    //cek apakah inventrotis kosong, kalau kosong maka proses dibatalkan
     if (l == NULL || l->head == NULL) {
         serial_cetak_teks_ln_flash(PSTR("\nProses Gagal: Gudang masih kosong."));
         return;
@@ -179,26 +180,26 @@ void tarikBarangAdmin(InventoryList *l, ErrorCode *err) {
             serial_cetak_teks_ln_flash(PSTR("Sesi penarikan barang diakhiri."));
             break; 
         }
-
+        //node untuk traversal 
         InventoryNode *curr = l->head;
         InventoryNode *prev = NULL;
         bool barangDitemukan = false;
 
         while (curr != NULL) {
-            if (curr->data.itemId == targetId) {
+            if (curr->data.itemId == targetId) { //jika ID barang sudah langsung ditemukan
                 barangDitemukan = true;
-
+                //apakah admin yang login adalah pemilik barang ini? 
                 if (curr->data.ownerIndex != indexUserAktif) {
                     serial_cetak_teks_flash(PSTR("GAGAL: Anda bukan Admin pemilik barang '"));
                     serial_cetak_teks(curr->data.itemName);
                     serial_cetak_teks_ln_flash(PSTR("'. Akses ditolak!"));
                 } 
-                else if (curr->data.stock.borrowed > 0) {
+                else if (curr->data.stock.borrowed > 0) { //apakah barangnya sedang dipinjam
                     serial_cetak_teks_flash(PSTR("GAGAL: Barang '"));
                     serial_cetak_teks(curr->data.itemName);
                     serial_cetak_teks_ln_flash(PSTR("' masih ada yang dipinjam. Tidak bisa ditarik!"));
                 } 
-                else {
+                else { 
                     serial_cetak_teks_flash(PSTR("BERHASIL! Barang '"));
                     serial_cetak_teks(curr->data.itemName);
                     serial_cetak_teks_ln_flash(PSTR("' ditarik dan dihapus permanen."));
@@ -208,10 +209,10 @@ void tarikBarangAdmin(InventoryList *l, ErrorCode *err) {
                 break; 
             }
             prev = curr;
-            curr = curr->next;
+            curr = curr->next;//pindah node
         }
 
-        if (!barangDitemukan) {
+        if (!barangDitemukan) { //barang tidak ditemukan
             serial_cetak_teks_ln_flash(PSTR("GAGAL: ID Barang tersebut tidak ditemukan di gudang."));
         }
         

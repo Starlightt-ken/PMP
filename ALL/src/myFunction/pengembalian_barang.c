@@ -4,7 +4,7 @@
 
 void kembalikanBarang(InventoryList *l, ErrorCode *err) {
     *err = ERR_OK;
-    if (l == NULL || l->head == NULL) {
+    if (l == NULL || l->head == NULL) { //proses validasi awal untuk memastikan apakah gudang kosong atau tidak 
         serial_cetak_teks_ln_flash(PSTR("\nProses Gagal: Database kosong."));
         *err = ERR_DATABASE_NULL;
         return;
@@ -13,7 +13,7 @@ void kembalikanBarang(InventoryList *l, ErrorCode *err) {
     serial_cetak_teks_ln_flash(PSTR("\n======================================="));
     serial_cetak_teks_ln_flash(PSTR("       SESI PENGEMBALIAN BARANG        "));
     serial_cetak_teks_ln_flash(PSTR("======================================="));
-
+    //looping hingga ID 0
     while (true) {
         char buffer[MAX_LENGTH + 1];
         serial_cetak_teks_ln_flash(PSTR("\n---------------------------------------"));
@@ -25,19 +25,19 @@ void kembalikanBarang(InventoryList *l, ErrorCode *err) {
         uint8_t targetId = 0;
         stringToInt(buffer, &targetId, err);
         if (*err != ERR_OK) return;
-
+        //pengakhiran fungsi 
         if (targetId == 0) {
             serial_cetak_teks_ln_flash(PSTR("\nSesi pengembalian diakhiri oleh user."));
             break; 
         }
 
         bool barangDitemukan = false;
-
+        //traversal pencarian barang dengan node dummy 
         for (InventoryNode *curr = l->head; curr != NULL; curr = curr->next) {
             if (curr->data.itemId == targetId) {
-                barangDitemukan = true;
+                barangDitemukan = true; //barang ditemukan tanpa ada yang dipinjam terlebih dahulu 
                 
-                if (curr->data.stock.borrowed > 0) {
+                if (curr->data.stock.borrowed > 0) { //cek apakah barang sedang dipinjam 
                     serial_cetak_teks_flash(PSTR("Barang ditemukan: "));
                     serial_cetak_teks_ln(curr->data.itemName);
                     serial_cetak_teks_flash(PSTR("Catatan sistem: Ada "));
@@ -51,7 +51,7 @@ void kembalikanBarang(InventoryList *l, ErrorCode *err) {
                     uint8_t jumlahKembali = 0;
                     stringToInt(buffer, &jumlahKembali, err);
                     if (*err != ERR_OK) return;
-
+                    //cek apakah jumlah yang dikembalikan sama dengan jumlah yang dipinjam 
                     if (jumlahKembali <= 0) {
                         serial_cetak_teks_ln_flash(PSTR("\nGAGAL: Jumlah pengembalian tidak valid."));
                     } else if (jumlahKembali > curr->data.stock.borrowed) {
@@ -64,7 +64,7 @@ void kembalikanBarang(InventoryList *l, ErrorCode *err) {
                         
                         readSerialString(buffer, err);
                         if (*err != ERR_OK) return;
-
+                        //memasukan input jumlah barang yang rusak 
                         uint8_t jumlahRusak = 0;
                         stringToInt(buffer, &jumlahRusak, err);
                         if (*err != ERR_OK) return;

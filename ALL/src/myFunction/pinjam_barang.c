@@ -23,7 +23,7 @@ void pinjamBarang(InventoryList *l, ErrorCode *err) {
     serial_cetak_teks_flash(PSTR("[INFO] Maksimal "));
     serial_cetak_angka(MAX_UNIT_PER_BARANG);
     serial_cetak_teks_ln_flash(PSTR(" unit untuk setiap barang."));
-
+    //barang yang dipinjam user maks 3 jenis dengan 2 stok per jenis
     while (jenisBarangDipinjam < MAX_JENIS_BARANG) {
         char buffer[MAX_LENGTH + 1];
         serial_cetak_teks_ln_flash(PSTR("\n---------------------------------------"));
@@ -42,19 +42,19 @@ void pinjamBarang(InventoryList *l, ErrorCode *err) {
         }
 
         bool barangDitemukan = false;
-
+        //proses pencarian barang di linked list 
         for (InventoryNode *curr = l->head; curr != NULL; curr = curr->next) {
             if (curr->data.itemId == targetId) {
                 barangDitemukan = true;
                 uint8_t stokTersedia = 0;
-                getAvailableStock(&curr->data.stock, &stokTersedia);
+                getAvailableStock(&curr->data.stock, &stokTersedia);//menghitung stok yang tersedia (total - dipinjam - rusak)
 
                 if (stokTersedia > 0) {
                     serial_cetak_teks_flash(PSTR("Barang ditemukan: "));
                     serial_cetak_teks_ln(curr->data.itemName);
                     serial_cetak_teks_flash(PSTR("Stok tersedia saat ini: "));
                     serial_cetak_angka_ln(stokTersedia);
-
+                    //ternary operation : jika stok di lab kurang dari 2, maka batas pinjam mengikuti sisa stok, tetapi jika stok di lab banyak batas pinjam 2
                     uint8_t batasPinjam = (stokTersedia < MAX_UNIT_PER_BARANG) ? stokTersedia : MAX_UNIT_PER_BARANG;
                     
                     serial_cetak_teks_flash(PSTR("Masukkan jumlah pinjam (Maks "));
@@ -67,7 +67,7 @@ void pinjamBarang(InventoryList *l, ErrorCode *err) {
                     uint8_t jumlahPinjam = 0;
                     stringToInt(buffer, &jumlahPinjam, err);
                     if (*err != ERR_OK) return;
-
+                    //validasi input peminjaman berlapis
                     if (jumlahPinjam <= 0) {
                         serial_cetak_teks_ln_flash(PSTR("\nGAGAL: Jumlah pinjam tidak valid."));
                     } else if (jumlahPinjam > MAX_UNIT_PER_BARANG) {
@@ -77,8 +77,8 @@ void pinjamBarang(InventoryList *l, ErrorCode *err) {
                     } else if (jumlahPinjam > stokTersedia) {
                         serial_cetak_teks_ln_flash(PSTR("\nGAGAL: Meminjam melebihi sisa stok yang ada!"));
                     } else {
-                        curr->data.stock.borrowed += jumlahPinjam;
-                        jenisBarangDipinjam++; 
+                        curr->data.stock.borrowed += jumlahPinjam; //menambahkan catatan ke sistem
+                        jenisBarangDipinjam++; //menambahkan kuota barang user
                         
                         serial_cetak_teks_flash(PSTR("\nBERHASIL! Anda meminjam "));
                         serial_cetak_angka(jumlahPinjam);
@@ -100,7 +100,7 @@ void pinjamBarang(InventoryList *l, ErrorCode *err) {
         if (!barangDitemukan) {
             serial_cetak_teks_ln_flash(PSTR("\nGAGAL: ID Barang tersebut tidak ditemukan di sistem."));
         }
-
+        //jika user sudah meminjam 3 jenis barang yang berbeda
         if (jenisBarangDipinjam >= MAX_JENIS_BARANG) {
             serial_cetak_teks_ln_flash(PSTR("\n[INFO] Kuota maksimal (3 jenis barang) sudah habis. Sesi peminjaman otomatis selesai."));
         }
