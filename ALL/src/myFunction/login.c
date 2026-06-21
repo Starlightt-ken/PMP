@@ -122,7 +122,7 @@ void jalankanLogin(InventoryList *l) {
         
         readSerialString(buffer, &err);
         uint8_t choice = 0;
-        stringToInt(buffer, &choice, err);
+        stringToInt(buffer, &choice, &err);
         if (err != ERR_OK) {
             serial_cetak_teks_ln_flash(PSTR("Pilihan yang dimasukan salah"));
             return;
