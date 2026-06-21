@@ -121,7 +121,14 @@ void jalankanLogin(InventoryList *l) {
         serial_cetak_teks_flash(PSTR("Pilih tindakan (1-2): "));
         
         readSerialString(buffer, &err);
+        uint8_t choice = 0;
+        stringToInt(buffer, &choice, err);
+        if (err != ERR_OK) {
+            serial_cetak_teks_ln_flash(PSTR("Pilihan yang dimasukan salah"));
+            return;
+        }
         if (buffer[0] == '2') {
+<<<<<<< HEAD
             jalankanRegister(); // Typo diperbaiki dari jalankanRer()
             return; 
         } else if (buffer[0] == '1') {
@@ -129,6 +136,9 @@ void jalankanLogin(InventoryList *l) {
         } else {
             // Jika diketik huruf atau angka lain, langsung batalkan
             serial_cetak_teks_ln_flash(PSTR("GAGAL: Input tidak valid. Kembali ke menu utama."));
+=======
+            jalankanRegister();
+>>>>>>> 38c7d60ffb4a7e9eb247c1a0985d0c424c448796
             return;
         }
     }
