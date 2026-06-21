@@ -4,6 +4,8 @@
 #include "inventory_operation.h" 
 #include "ui.h"                  
 #include <avr/pgmspace.h> 
+#include <string.h>
+#include <stdlib.h>
 
 ErrorCode ERROR_FLAG = ERR_OK;
 bool shouldDisplayMenu = true;
@@ -41,7 +43,8 @@ void inisialisasiSistem(InventoryList *l) {
                             KATEGORI_SENSOR, KATEGORI_SENSOR, KATEGORI_SENSOR,
                             KATEGORI_MIKROKONTROLLER, KATEGORI_MIKROKONTROLLER, KATEGORI_MIKROKONTROLLER};
 
-    for (uint8_t i = 0; i < 50; i++) {
+    // DIKEMBALIKAN KE 9 BARANG AGAR MUDAH DIKELOLA
+    for (uint8_t i = 0; i < 9; i++) { 
         InventoryNode *newNode = (InventoryNode *)malloc(sizeof(InventoryNode));
         if (newNode == NULL) continue;
         
@@ -54,10 +57,10 @@ void inisialisasiSistem(InventoryList *l) {
         newNode->data.stock.borrowed = 0;
         newNode->data.stock.broken = 0;
         
-        switch(i%9) {
+        switch(i) {
             case 0:
                 strcpy_P(newNode->data.itemName, PSTR("Motor Servo"));
-                newNode->data.picIndex = 1; // 1 = Naya
+                newNode->data.picIndex = 1; 
                 break;
             case 1:
                 strcpy_P(newNode->data.itemName, PSTR("Motor DC"));
@@ -69,7 +72,7 @@ void inisialisasiSistem(InventoryList *l) {
                 break;
             case 3:
                 strcpy_P(newNode->data.itemName, PSTR("Sensor Suhu"));
-                newNode->data.picIndex = 2; // 2 = Imam
+                newNode->data.picIndex = 2; 
                 break;
             case 4:
                 strcpy_P(newNode->data.itemName, PSTR("Sensor Jarak"));
@@ -93,10 +96,7 @@ void inisialisasiSistem(InventoryList *l) {
                 break;
         }
         
-        // Owner juga diganti jadi angka index saja (0 = AdminA)
         newNode->data.ownerIndex = 0; 
-        // ---------------------------
-        
         newNode->next = NULL;
         insertNodeToList(l, newNode, &err);
     }
@@ -133,34 +133,30 @@ void process(InventoryList *l) {
         serial_baca_string(buffer, 10);
         char choice = buffer[0];
         
+        // Proteksi jika user mengetik karakter panjang (misal '11')
+        if (strlen(buffer) > 1) {
+            choice = 'X'; 
+        }
+        
         ERROR_FLAG = ERR_OK;
 
         switch (choice) {
             case '1': {
                 runInventoryMenu(l, CMD_SEARCH, &ERROR_FLAG);
-                if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
                 shouldDisplayMenu = true; serial_bersihkan(); break;
             }
             case '2': {
                 runInventoryMenu(l, CMD_UPDATE_STOCK, &ERROR_FLAG);
-                if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
                 shouldDisplayMenu = true; serial_bersihkan(); break;
             }
             case '3': {
                 runInventoryMenu(l, CMD_UPDATE_ITEM, &ERROR_FLAG);
-                if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
                 shouldDisplayMenu = true; serial_bersihkan(); break;
             }
             case '4': {
                 displayList(l, &ERROR_FLAG);
-                if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
                 shouldDisplayMenu = true; serial_bersihkan(); break;
             }
-            // case '5': {
-            //     destroyList(l, &ERROR_FLAG);
-            //     if (ERROR_FLAG != ERR_OK) printErrorMessage(ERROR_FLAG);
-            //     shouldDisplayMenu = true; serial_bersihkan(); break;
-            // }
             case '5': {
                 printMemory(l);
                 shouldDisplayMenu = true; serial_bersihkan(); break;

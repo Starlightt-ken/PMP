@@ -1,395 +1,154 @@
 #include "inventory_operation.h"
 #include "serial_bridge.h"
-#include "user.h" 
-#include <stdlib.h>
+#include "serial_utils.h"
+#include "helper.h"
+#include "user.h"
 #include <string.h>
 
-extern User daftarUser[];
-extern int totalUser;
-
-void destroyList(InventoryList *l, ErrorCode *err) {
-    destroyListCore(l, err);
-
-    if (*err == ERR_DATABASE_NULL) {
-        return;
-    }
-    else if (*err == ERR_LIST_EMPTY) {
-        serial_cetak_teks_ln_flash(PSTR("\nDatabase kosong, tidak ada data untuk dihapus"));
-    } 
-    else {
-        serial_cetak_teks_ln_flash(PSTR("Semua data berhasil dihapus"));
-    }
-}
-
-void runInventoryMenu(InventoryList *l, MenuCommand command, ErrorCode *err) {
+void runInventoryMenu(InventoryList *l, MenuCommand cmd, ErrorCode *err) {
     *err = ERR_OK;
-
-    if (l == NULL) {
-        *err = ERR_DATABASE_NULL;
+    if (l == NULL || l->head == NULL) {
+        serial_cetak_teks_ln_flash(PSTR("\nGAGAL: Gudang saat ini kosong!"));
         return;
     }
 
-    if (l->head == NULL) {
-        serial_cetak_teks_ln_flash(PSTR("\nDatabase kosong"));
-        *err = ERR_OK;
-        return;
-    }
-
-    serial_bersihkan(); 
-
-    switch (command) {
-        case CMD_SEARCH: 
-            serial_cetak_teks_ln_flash(PSTR("\n=== CARI DATA BARANG ===")); break;
-        case CMD_DELETE: 
-            serial_cetak_teks_ln_flash(PSTR("\n=== HAPUS DATA BARANG ===")); break;
-        case CMD_UPDATE_ITEM: 
-            serial_cetak_teks_ln_flash(PSTR("\n=== UPDATE DATA BARANG ===")); break;
-        case CMD_UPDATE_STOCK: 
-            serial_cetak_teks_ln_flash(PSTR("\n=== UPDATE STOK BARANG ===")); break;
-    }
+    // Tampilkan Header Sesuai Perintah
+    if (cmd == CMD_SEARCH) serial_cetak_teks_ln_flash(PSTR("\n=== CARI DATA BARANG ==="));
+    else if (cmd == CMD_UPDATE_STOCK) serial_cetak_teks_ln_flash(PSTR("\n=== UPDATE STOK BARANG ==="));
+    else if (cmd == CMD_UPDATE_ITEM) serial_cetak_teks_ln_flash(PSTR("\n=== UPDATE DATA BARANG ==="));
 
     serial_cetak_teks_ln_flash(PSTR("1. Berdasarkan ID"));
     serial_cetak_teks_ln_flash(PSTR("2. Berdasarkan Nama"));
     serial_cetak_teks_flash(PSTR("Pilih metode: "));
 
     char buffer[MAX_LENGTH + 1];
-
     readSerialString(buffer, err);
     if (*err != ERR_OK) return;
 
-    char choice = buffer[0];
-    serial_bersihkan();
+    char method = buffer[0];
+    uint8_t targetId = 0;
+    char targetName[MAX_LENGTH + 1] = {0};
 
-    if (choice == '1') {
+    // Ambil Input Target
+    if (method == '1') {
         serial_cetak_teks_flash(PSTR("Masukkan ID Barang: "));
         readSerialString(buffer, err);
-        if (*err != ERR_OK) return;
-
-        uint8_t targetId = 0;
         stringToInt(buffer, &targetId, err);
-        if (*err != ERR_OK) return;
-
-        processById(l, targetId, command, err);
-        if (*err != ERR_OK) return;
-    }
-    else if (choice == '2') {
-        serial_cetak_teks_flash(PSTR("Masukkan Nama Barang: "));
-        readSerialString(buffer, err);
-        if (*err != ERR_OK) return;
-
-        processByName(l, buffer, command, err);
-        if (*err != ERR_OK) return;
-    }
-    else {
-        serial_cetak_teks_ln_flash(PSTR("Pilihan Tidak Ada"));
-    }
-    *err = ERR_OK;
-}
-
-void processById(InventoryList *l, uint8_t targetId, MenuCommand command, ErrorCode *err) {
-    InventoryNode *curr = l->head;
-    InventoryNode *prev = NULL;
-
-    while (curr != NULL) {
-        if (curr->data.itemId == targetId) {
-
-            switch (command) {
-                case CMD_SEARCH: {
-                    serial_cetak_teks_ln_flash(PSTR("--- BARANG DITEMUKAN ---"));
-                    displayItemData(&curr->data);
-                    break;
-                }
-                case CMD_DELETE: {
-                    deleteInventoryNode(l, curr, prev);
-                    serial_cetak_teks_flash(PSTR("\nBarang dengan ID "));
-                    serial_cetak_angka(targetId);
-                    serial_cetak_teks_ln_flash(PSTR(" BERHASIL DIHAPUS"));
-                    break;
-                }
-                case CMD_UPDATE_ITEM: {
-                    serial_cetak_teks_flash(PSTR("\nBarang Ditemukan: "));
-                    serial_cetak_teks_ln(curr->data.itemName);
-                    modifyItemInventoryNode(curr, err);
-                    break;
-                }
-                case CMD_UPDATE_STOCK: {
-                    serial_cetak_teks_flash(PSTR("\nBarang Ditemukan: "));
-                    serial_cetak_teks_ln(curr->data.itemName);
-                    modifyStockInventoryNode(curr, err);
-                    break;
-                }
-            }
+        if (*err != ERR_OK) {
+            serial_cetak_teks_ln_flash(PSTR("GAGAL: Format ID harus berupa angka!"));
             return;
         }
-        prev = curr;
-        curr = curr->next;
-    }
-    serial_cetak_teks_ln_flash(PSTR("\nBarang dengan ID tersebut tidak ditemukan."));
-}
-
-void processByName(InventoryList *l, const char *targetName, MenuCommand command, ErrorCode *err) {
-    if (command == CMD_SEARCH) {
-        serial_cetak_teks_flash(PSTR("\nMencari Nama: "));
-        serial_cetak_teks_ln(targetName);
-
-        bool found = false;
-        for (InventoryNode *curr = l->head; curr != NULL; curr = curr->next) {
-            if (strcmp(curr->data.itemName, targetName) == 0) {
-                if (!found) serial_cetak_teks_ln_flash(PSTR("--- BARANG DITEMUKAN ---"));
-                displayItemData(&curr->data);
-                found = true;
-            }
-        }
-
-        if (!found) {
-            serial_cetak_teks_ln_flash(PSTR("Barang dengan nama tersebut tidak ditemukan."));
-        }
-        *err = ERR_OK;
+    } else if (method == '2') {
+        serial_cetak_teks_flash(PSTR("Masukkan Nama Barang: "));
+        readSerialString(targetName, err);
+        if (*err != ERR_OK) return;
+    } else {
+        serial_cetak_teks_ln_flash(PSTR("GAGAL: Metode pencarian tidak valid!"));
         return;
     }
-
-    bool foundAny = false;
-    char buffer[10];
 
     InventoryNode *curr = l->head;
-    InventoryNode *prev = NULL;
+    bool found = false;
 
+    // Proses Pencarian di Linked List
     while (curr != NULL) {
-        if (strcmp(curr->data.itemName, targetName) == 0) {
-            foundAny = true;
+        bool match = false;
+        
+        if (method == '1' && curr->data.itemId == targetId) match = true;
+        else if (method == '2' && strcasecmp(curr->data.itemName, targetName) == 0) match = true;
 
-            serial_cetak_teks_ln_flash(PSTR("\nBarang Ditemukan:"));
-            serial_cetak_teks_flash(PSTR("- ID       : ")); serial_cetak_angka_ln(curr->data.itemId);
-            serial_cetak_teks_flash(PSTR("- Kategori : ")); printCategory((ItemCategory)curr->data.category);
-            serial_cetak_teks_flash(PSTR("- Lokasi   : ")); printLocation((ItemLocation)curr->data.location);
+        if (match) {
+            found = true;
+            serial_cetak_teks_ln_flash(PSTR("\n--- BARANG DITEMUKAN ---"));
+            serial_cetak_teks_flash(PSTR("ID       : ")); serial_cetak_angka(curr->data.itemId); serial_cetak_teks_ln_flash(PSTR(""));
+            serial_cetak_teks_flash(PSTR("Nama     : ")); serial_cetak_teks_ln(curr->data.itemName);
+
+            // ==========================================
+            // LOGIKA 1: JIKA HANYA MENCARI (SEARCH)
+            // ==========================================
+            if (cmd == CMD_SEARCH) {
+                uint8_t tersedia = curr->data.stock.totalStock - curr->data.stock.borrowed - curr->data.stock.broken;
+                serial_cetak_teks_flash(PSTR("Total    : ")); serial_cetak_angka(curr->data.stock.totalStock); serial_cetak_teks_ln_flash(PSTR(""));
+                serial_cetak_teks_flash(PSTR("Tersedia : ")); serial_cetak_angka(tersedia); serial_cetak_teks_ln_flash(PSTR(""));
+                serial_cetak_teks_flash(PSTR("Dipinjam : ")); serial_cetak_angka(curr->data.stock.borrowed); serial_cetak_teks_ln_flash(PSTR(""));
+                serial_cetak_teks_flash(PSTR("Rusak    : ")); serial_cetak_angka(curr->data.stock.broken); serial_cetak_teks_ln_flash(PSTR(""));
+                serial_cetak_teks_ln_flash(PSTR("------------------------"));
+            }
+            // ==========================================
+            // LOGIKA 2: JIKA INGIN UPDATE STOK
+            // ==========================================
+            else if (cmd == CMD_UPDATE_STOCK) {
+                uint8_t tersedia = curr->data.stock.totalStock - curr->data.stock.borrowed - curr->data.stock.broken;
+                serial_cetak_teks_ln_flash(PSTR("\n--- Detail Stok Saat Ini ---"));
+                serial_cetak_teks_flash(PSTR("1. Total Stock : ")); serial_cetak_angka(curr->data.stock.totalStock); serial_cetak_teks_ln_flash(PSTR(""));
+                serial_cetak_teks_flash(PSTR("2. Dipinjam    : ")); serial_cetak_angka(curr->data.stock.borrowed); serial_cetak_teks_ln_flash(PSTR(""));
+                serial_cetak_teks_flash(PSTR("3. Rusak       : ")); serial_cetak_angka(curr->data.stock.broken); serial_cetak_teks_ln_flash(PSTR(""));
+                serial_cetak_teks_flash(PSTR("(Tersedia)     : ")); serial_cetak_angka(tersedia); serial_cetak_teks_ln_flash(PSTR(""));
+                
+                serial_cetak_teks_flash(PSTR("Pilih tipe stok yang ingin diubah (1-3): "));
+                readSerialString(buffer, err);
+                uint8_t tipe = buffer[0] - '0';
+
+                if (tipe >= 1 && tipe <= 3) {
+                    serial_cetak_teks_flash(PSTR("Masukkan Data Terbaru: "));
+                    readSerialString(buffer, err);
+                    uint8_t val = 0;
+                    stringToInt(buffer, &val, err);
+                    if (*err == ERR_OK) {
+                        if (tipe == 1) curr->data.stock.totalStock = val;
+                        else if (tipe == 2) curr->data.stock.borrowed = val;
+                        else if (tipe == 3) curr->data.stock.broken = val;
+                        serial_cetak_teks_ln_flash(PSTR("STOK BERHASIL DIPERBARUI!"));
+                    }
+                } else {
+                    serial_cetak_teks_ln_flash(PSTR("GAGAL: Pilihan tipe stok tidak valid."));
+                }
+                break; // Keluar dari loop setelah selesai update (FIX UX BUG)
+            }
+            // ==========================================
+            // LOGIKA 3: JIKA INGIN UPDATE IDENTITAS
+            // ==========================================
+            else if (cmd == CMD_UPDATE_ITEM) {
+                serial_cetak_teks_ln_flash(PSTR("\n--- Detail Data Saat Ini ---"));
+                serial_cetak_teks_flash(PSTR("1. Nama     : ")); serial_cetak_teks_ln(curr->data.itemName);
+                serial_cetak_teks_flash(PSTR("2. Kategori : ")); serial_cetak_angka(curr->data.category); serial_cetak_teks_ln_flash(PSTR(""));
+                serial_cetak_teks_flash(PSTR("3. Lokasi   : ")); serial_cetak_angka(curr->data.location); serial_cetak_teks_ln_flash(PSTR(""));
+                serial_cetak_teks_flash(PSTR("4. PIC      : ")); serial_cetak_angka(curr->data.picIndex); serial_cetak_teks_ln_flash(PSTR(""));
+                
+                serial_cetak_teks_flash(PSTR("Pilih data yang ingin diubah (1-4): "));
+                readSerialString(buffer, err);
+                uint8_t tipe = buffer[0] - '0';
+
+                if (tipe == 1) {
+                    serial_cetak_teks_flash(PSTR("Masukkan Nama Baru: "));
+                    readSerialString(curr->data.itemName, err);
+                    serial_cetak_teks_ln_flash(PSTR("DATA BERHASIL DIPERBARUI!"));
+                } else if (tipe >= 2 && tipe <= 4) {
+                    serial_cetak_teks_flash(PSTR("Masukkan Angka ID Baru: "));
+                    readSerialString(buffer, err);
+                    uint8_t val = 0;
+                    stringToInt(buffer, &val, err);
+                    if (*err == ERR_OK) {
+                        if (tipe == 2) curr->data.category = val;
+                        else if (tipe == 3) curr->data.location = val;
+                        else if (tipe == 4) curr->data.picIndex = val;
+                        serial_cetak_teks_ln_flash(PSTR("DATA BERHASIL DIPERBARUI!"));
+                    }
+                } else {
+                    serial_cetak_teks_ln_flash(PSTR("GAGAL: Pilihan data tidak valid."));
+                }
+                break; // Keluar dari loop setelah selesai update (FIX UX BUG)
+            }
             
-            serial_cetak_teks_flash(PSTR("- Pemilik  : ")); 
-            if (curr->data.ownerIndex >= 0 && curr->data.ownerIndex < MAX_USERS) {
-                serial_cetak_teks_ln(daftarUser[curr->data.ownerIndex].username);
-            } else {
-                serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
-            }
-
-            serial_cetak_teks_flash(PSTR("- PIC      : ")); 
-            if (curr->data.picIndex >= 0 && curr->data.picIndex < MAX_USERS) {
-                serial_cetak_teks_ln(daftarUser[curr->data.picIndex].username);
-            } else {
-                serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
-            }
-
-            if (command == CMD_DELETE) {
-                serial_cetak_teks_flash(PSTR("Hapus barang ini? (y/n): "));
-                readSerialString(buffer, err);
-                if (*err != ERR_OK) return;
-                serial_bersihkan();
-
-                if (buffer[0] == 'y' || buffer[0] == 'Y') {
-                    InventoryNode *nextNode = curr->next;
-                    deleteInventoryNode(l, curr, prev);
-                    serial_cetak_teks_ln_flash(PSTR("BARANG BERHASIL DIHAPUS"));
-
-                    serial_cetak_teks_flash(PSTR("Lanjut hapus data lain dengan nama ini? (y/n): "));
-                    readSerialString(buffer, err);
-                    if (buffer[0] == 'n' || buffer[0] == 'N') return;
-
-                    curr = nextNode;
-                    continue;
-                }
-            }
-            else if (command == CMD_UPDATE_ITEM) {
-                serial_cetak_teks_flash(PSTR("Update barang ini? (y/n): "));
-                readSerialString(buffer, err);
-                if (*err != ERR_OK) return;
-                serial_bersihkan();
-
-                if (buffer[0] == 'y' || buffer[0] == 'Y') {
-                    modifyItemInventoryNode(curr, err);
-
-                    serial_cetak_teks_flash(PSTR("Update barang lain dengan nama ini? (y/n): "));
-                    readSerialString(buffer, err);
-                    if (buffer[0] == 'n' || buffer[0] == 'N') return;
-                }
-            }
-            else if (command == CMD_UPDATE_STOCK) {
-                serial_cetak_teks_flash(PSTR("Update stok barang ini? (y/n): "));
-                readSerialString(buffer, err);
-                if (*err != ERR_OK) return;
-                serial_bersihkan();
-
-                if (buffer[0] == 'y' || buffer[0] == 'Y') {
-                    modifyStockInventoryNode(curr, err);
-
-                    serial_cetak_teks_flash(PSTR("Update stok barang lain dengan nama ini? (y/n): "));
-                    readSerialString(buffer, err);
-                    if (buffer[0] == 'n' || buffer[0] == 'N') return;
-                }
-            }
+            // Jika pencarian via ID, langsung break (karena ID tidak mungkin kembar)
+            if (method == '1') break; 
         }
-        prev = curr;
         curr = curr->next;
     }
 
-    if (foundAny) {
-        serial_cetak_teks_ln_flash(PSTR("\nPencarian selesai. Semua data diperiksa."));
+    if (!found) {
+        serial_cetak_teks_ln_flash(PSTR("\nBarang tidak ditemukan di gudang."));
     } else {
-        serial_cetak_teks_ln_flash(PSTR("\nBarang dengan nama tersebut tidak ditemukan."));
+        serial_cetak_teks_ln_flash(PSTR("\nSesi selesai. Kembali ke menu PIC."));
     }
-    *err = ERR_OK;
-}
-
-void modifyItemInventoryNode(InventoryNode *curr, ErrorCode *err) {
-    serial_cetak_teks_ln_flash(PSTR("\n--- Detail Data Saat Ini ---"));
-    serial_cetak_teks_flash(PSTR("ID         : ")); serial_cetak_angka_ln(curr->data.itemId);
-    serial_cetak_teks_flash(PSTR("1. Nama    : ")); serial_cetak_teks_ln(curr->data.itemName);
-    serial_cetak_teks_flash(PSTR("2. Kategori: ")); printCategory((ItemCategory)curr->data.category);
-    serial_cetak_teks_flash(PSTR("3. Lokasi  : ")); printLocation((ItemLocation)curr->data.location);
-
-    serial_cetak_teks_flash(PSTR("4. PIC     : ")); 
-    if (curr->data.picIndex >= 0 && curr->data.picIndex < MAX_USERS) {
-        serial_cetak_teks_ln(daftarUser[curr->data.picIndex].username);
-    } else {
-        serial_cetak_teks_ln_flash(PSTR("Tidak Diketahui"));
-    }
-    
-    serial_cetak_teks_flash(PSTR("Pilih data yang ingin diubah (1-4): "));
-
-    char buffer[MAX_LENGTH + 1];
-    readSerialString(buffer, err);
-    if (*err != ERR_OK) return;
-
-    char choice = buffer[0];
-    serial_bersihkan();
-
-    if (choice < '1' || choice > '4') {
-        serial_cetak_teks_ln_flash(PSTR("Pilihan Tidak Ada"));
-        return;
-    }
-
-    uint8_t numericValue = 0;
-
-    switch (choice) {
-        case '1': { 
-            serial_cetak_teks_flash(PSTR("Masukkan Nama Baru: "));
-            readSerialString(buffer, err);
-            if (*err != ERR_OK) return;
-            
-            strncpy(curr->data.itemName, buffer, MAX_LENGTH);
-            curr->data.itemName[MAX_LENGTH] = '\0';
-            serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
-            break;
-        }
-        case '2': { 
-            serial_cetak_teks_flash(PSTR("Masukkan Kategori Baru (0-2): "));
-            readSerialString(buffer, err);
-            if (*err != ERR_OK) return;
-            
-            stringToInt(buffer, &numericValue, err);
-            if (*err != ERR_OK) return;
-            if (numericValue > 2) { 
-                serial_cetak_teks_ln_flash(PSTR("Proses Gagal, Kategori tidak valid! (Pilih 0, 1, atau 2)"));
-                return;
-            }
-            curr->data.category = numericValue;
-            serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
-            break;
-        }
-        case '3': { 
-            serial_cetak_teks_flash(PSTR("Masukkan Lokasi Baru (0-1): "));
-            readSerialString(buffer, err);
-            if (*err != ERR_OK) return;
-            
-            stringToInt(buffer, &numericValue, err);
-            if (*err != ERR_OK) return;
-            if (numericValue > 1) {
-                serial_cetak_teks_ln_flash(PSTR("Proses Gagal, Lokasi tidak valid! (Pilih 0 atau 1)"));
-                return;
-            }
-            curr->data.location = numericValue;
-            serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
-            break;
-        }
-        case '4': { 
-            serial_cetak_teks_ln_flash(PSTR("\n--- Daftar PIC ---"));
-            for (int i = 0; i < totalUser; i++) {
-                if (daftarUser[i].role == ROLE_PIC) {
-                    char numStr[10];
-                    sprintf(numStr, "%d. ", i);
-                    serial_cetak_teks(numStr);
-                    serial_cetak_teks_ln(daftarUser[i].username);
-                }
-            }
-            serial_cetak_teks_flash(PSTR("Pilih ID PIC: "));
-            readSerialString(buffer, err);
-            if (*err != ERR_OK) return;
-            
-            stringToInt(buffer, &numericValue, err);
-            if (*err == ERR_OK && numericValue < totalUser && daftarUser[numericValue].role == ROLE_PIC) {
-                curr->data.picIndex = numericValue;
-                serial_cetak_teks_ln_flash(PSTR("\nDATA BARANG BERHASIL DIPERBARUI!"));
-            } else {
-                serial_cetak_teks_ln_flash(PSTR("GAGAL: Pilihan PIC tidak valid."));
-            }
-            break;
-        }
-    }
-}
-
-void modifyStockInventoryNode(InventoryNode *curr, ErrorCode *err) {
-    uint8_t availableNow = 0;
-    getAvailableStock(&curr->data.stock, &availableNow);
-
-    serial_cetak_teks_ln_flash(PSTR("\n--- Detail Stok Saat Ini ---"));
-    serial_cetak_teks_flash(PSTR("1. Total Stock : ")); serial_cetak_angka_ln(curr->data.stock.totalStock);
-    serial_cetak_teks_flash(PSTR("2. Dipinjam    : ")); serial_cetak_angka_ln(curr->data.stock.borrowed);
-    serial_cetak_teks_flash(PSTR("3. Rusak       : ")); serial_cetak_angka_ln(curr->data.stock.broken);
-    serial_cetak_teks_flash(PSTR("(Tersedia)     : ")); serial_cetak_angka_ln(availableNow);
-    serial_cetak_teks_flash(PSTR("Pilih tipe stok yang ingin diubah (1-3): "));
-
-    char buffer[MAX_LENGTH + 1];
-    readSerialString(buffer, err);
-    if (*err != ERR_OK) return;
-
-    char stockChoice = buffer[0];
-    serial_bersihkan();
-
-    if (stockChoice < '1' || stockChoice > '3') {
-        serial_cetak_teks_ln_flash(PSTR("Pilihan Tidak Ada"));
-        return;
-    }
-
-    if (stockChoice == '1') serial_cetak_teks_flash(PSTR("Masukkan Data Stock Terbaru: "));
-    if (stockChoice == '2') serial_cetak_teks_flash(PSTR("Masukkan Data Dipinjam Terbaru: "));
-    if (stockChoice == '3') serial_cetak_teks_flash(PSTR("Masukkan Data Rusak Terbaru: "));
-
-    readSerialString(buffer, err);
-    if (*err != ERR_OK) return;
-
-    uint8_t newValue = 0;
-    stringToInt(buffer, &newValue, err);
-    if (*err != ERR_OK) return;
-
-    StockInfo tempStock = curr->data.stock;
-
-    switch (stockChoice) {
-        case '1': {
-            if (newValue > 50) {
-                serial_cetak_teks_ln_flash(PSTR("\nProses Gagal: Total stok melebihi batas maksimal lab (50 unit)!"));
-                *err = ERR_OK;
-                return;
-            }
-            tempStock.totalStock = newValue; 
-            break;
-        }
-        case '2': tempStock.borrowed  = newValue; break;
-        case '3': tempStock.broken    = newValue; break;
-    }
-
-    if ((tempStock.borrowed + tempStock.broken) > tempStock.totalStock) {
-        serial_cetak_teks_ln_flash(PSTR("\nProses Gagal, Jumlah (Dipinjam dan Rusak) tidak boleh melebihi Total Stock"));
-        *err = ERR_OK; 
-        return;
-    }
-
-    curr->data.stock = tempStock;
-    serial_cetak_teks_ln_flash(PSTR("\nSTOK BERHASIL DIPERBARUI"));
 }
