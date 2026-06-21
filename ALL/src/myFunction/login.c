@@ -122,8 +122,14 @@ void jalankanLogin(InventoryList *l) {
         
         readSerialString(buffer, &err);
         if (buffer[0] == '2') {
-            jalankanRegister();
+            jalankanRegister(); // Typo diperbaiki dari jalankanRer()
             return; 
+        } else if (buffer[0] == '1') {
+            // Lanjut ke proses login di bawah
+        } else {
+            // Jika diketik huruf atau angka lain, langsung batalkan
+            serial_cetak_teks_ln_flash(PSTR("GAGAL: Input tidak valid. Kembali ke menu utama."));
+            return;
         }
     }
 
