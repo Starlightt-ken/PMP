@@ -122,16 +122,19 @@ void jalankanLogin(InventoryList *l) {
         
         readSerialString(buffer, &err);
         uint8_t choice = 0;
-        stringToInt(buffer, &choice, err);
-        if (err != ERR_OK) {
-            serial_cetak_teks_ln_flash(PSTR("Pilihan yang dimasukan salah"));
+    
+        stringToInt(buffer, &choice, &err); 
+        
+        if (err != ERR_OK || (choice != 1 && choice != 2)) {
+            serial_cetak_teks_ln_flash(PSTR("GAGAL: Pilihan yang dimasukan salah. Kembali ke awal."));
             return;
         }
-        if (buffer[0] == '2') {
+        
+        if (choice == 2) {
             jalankanRegister();
             return;
         }
-    }
+    } 
 
     serial_cetak_teks_ln_flash(PSTR("\n--- MASUKKAN KREDENSIAL AKUN ---"));
     serial_cetak_teks_flash(PSTR("  Username : "));
