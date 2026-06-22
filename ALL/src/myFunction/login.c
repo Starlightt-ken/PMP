@@ -121,9 +121,15 @@ void jalankanLogin(InventoryList *l) {
         serial_cetak_teks_flash(PSTR("Pilih tindakan (1-2): "));
         
         readSerialString(buffer, &err);
+        uint8_t choice = 0;
+        stringToInt(buffer, &choice, err);
+        if (err != ERR_OK) {
+            serial_cetak_teks_ln_flash(PSTR("Pilihan yang dimasukan salah"));
+            return;
+        }
         if (buffer[0] == '2') {
             jalankanRegister();
-            return; 
+            return;
         }
     }
 
